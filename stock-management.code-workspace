@@ -1,0 +1,25 @@
+{
+  "folders": [
+    {
+      "name": "Backend - Spring Boot",
+      "path": "stock-management"
+    },
+    {
+      "name": "Frontend - React",
+      "path": "stock-management-frontend"
+    },
+    {
+      "name": "Project Root",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "eslint.workingDirectories": [
+      {
+        "directory": "stock-management-frontend",
+        "changeProcessCWD": true
+      }
+    ]
+  }
+}

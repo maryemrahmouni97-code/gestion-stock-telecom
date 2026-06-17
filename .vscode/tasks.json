@@ -1,0 +1,82 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Backend: run Spring Boot",
+      "type": "shell",
+      "command": ".\\mvnw.cmd",
+      "args": ["spring-boot:run"],
+      "options": {
+        "cwd": "${workspaceFolder}\\stock-management"
+      },
+      "group": "build",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "java",
+        "pattern": {
+          "regexp": "^(.*)$",
+          "message": 1
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*Spring Boot.*",
+          "endsPattern": ".*Started .* in .* seconds.*"
+        }
+      }
+    },
+    {
+      "label": "Backend: test",
+      "type": "shell",
+      "command": ".\\mvnw.cmd",
+      "args": ["test"],
+      "options": {
+        "cwd": "${workspaceFolder}\\stock-management"
+      },
+      "group": "test",
+      "problemMatcher": ["$javac"]
+    },
+    {
+      "label": "Frontend: dev",
+      "type": "npm",
+      "script": "dev",
+      "path": "stock-management-frontend",
+      "group": "build",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "vite",
+        "pattern": {
+          "regexp": "^(.*)$",
+          "message": 1
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*VITE.*",
+          "endsPattern": ".*Local:.*http://localhost:.*"
+        }
+      }
+    },
+    {
+      "label": "Frontend: build",
+      "type": "npm",
+      "script": "build",
+      "path": "stock-management-frontend",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Frontend: lint",
+      "type": "npm",
+      "script": "lint",
+      "path": "stock-management-frontend",
+      "group": "test",
+      "problemMatcher": ["$eslint-stylish"]
+    },
+    {
+      "label": "PostgreSQL: check port 5432",
+      "type": "shell",
+      "command": "netstat",
+      "args": ["-ano"],
+      "problemMatcher": []
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Backend: debug Spring Boot",
+      "request": "launch",
+      "mainClass": "com.telecom.stock_management.StockManagementApplication",
+      "projectName": "stock-management",
+      "cwd": "${workspaceFolder}\\stock-management",
+      "console": "integratedTerminal",
+      "env": {
+        "SPRING_DATASOURCE_URL": "jdbc:postgresql://localhost:5432/data",
+        "SPRING_DATASOURCE_USERNAME": "postgres"
+      }
+    },
+    {
+      "type": "chrome",
+      "name": "Frontend: debug React",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}\\stock-management-frontend\\src",
+      "preLaunchTask": "Frontend: dev"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Full stack: backend + frontend",
+      "configurations": [
+        "Backend: debug Spring Boot",
+        "Frontend: debug React"
+      ],
+      "stopAll": true
+    }
+  ]
+}

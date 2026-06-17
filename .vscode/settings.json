@@ -1,0 +1,42 @@
+{
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "java.compile.nullAnalysis.mode": "automatic",
+  "maven.executable.path": "stock-management\\mvnw.cmd",
+  "eslint.workingDirectories": [
+    {
+      "directory": "stock-management-frontend",
+      "changeProcessCWD": true
+    }
+  ],
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[java]": {
+    "editor.defaultFormatter": "redhat.java"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "files.exclude": {
+    "**/.idea": true,
+    "**/node_modules": true,
+    "**/target": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/target": true
+  },
+  "sqltools.connections": [
+    {
+      "name": "Stock Management PostgreSQL",
+      "driver": "PostgreSQL",
+      "server": "localhost",
+      "port": 5432,
+      "database": "data",
+      "username": "postgres",
+      "askForPassword": true
+    }
+  ]
+}
