@@ -87,6 +87,17 @@
   gap: 6px;
 }
 
+.role-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin: 0 8px 18px;
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .sidebar button {
   width: 100%;
   min-height: 42px;
@@ -101,7 +112,8 @@
 }
 
 .sidebar nav button:hover,
-.sidebar nav button.active {
+.sidebar nav button.active,
+.role-switch button.active {
   background: #1e88e5;
 }
 
@@ -320,28 +332,6 @@ progress::-webkit-progress-value {
   background: #1e88e5;
 }
 
-.region-stock {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.region-stock div {
-  padding: 14px;
-  border-radius: 8px;
-  background: #f3f7fc;
-}
-
-.region-stock span,
-.region-stock strong {
-  display: block;
-}
-
-.region-stock strong {
-  margin-top: 6px;
-  font-size: 24px;
-}
-
 .primary-button,
 .secondary-button,
 .ghost-button {
@@ -360,10 +350,16 @@ progress::-webkit-progress-value {
 }
 
 .secondary-button,
-.ghost-button {
+.ghost-button,
+.danger-button {
   border: 1px solid #c8d4e4;
   background: #ffffff;
   color: #10233f;
+}
+
+.danger-button {
+  border-color: #fecaca;
+  color: #991b1b;
 }
 
 .toolbar,
@@ -384,7 +380,8 @@ label {
 }
 
 input,
-select {
+select,
+textarea {
   width: 100%;
   min-height: 40px;
   box-sizing: border-box;
@@ -394,6 +391,12 @@ select {
   background: #ffffff;
   color: #162033;
   font: inherit;
+}
+
+textarea {
+  min-height: 96px;
+  padding: 10px 11px;
+  resize: vertical;
 }
 
 .table-shell {
@@ -454,7 +457,8 @@ tr:last-child td {
 }
 
 .stock-pill,
-.type-badge {
+.type-badge,
+.availability-badge {
   display: inline-flex;
   min-width: 54px;
   justify-content: center;
@@ -462,6 +466,21 @@ tr:last-child td {
   padding: 5px 10px;
   font-size: 13px;
   font-weight: 800;
+}
+
+.availability-badge.disponible {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.availability-badge.stock-faible {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+.availability-badge.rupture {
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 .type-badge {
@@ -483,6 +502,29 @@ tr:last-child td {
 .type-badge.retour {
   background: #dcfce7;
   color: #166534;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  border-radius: 999px;
+  padding: 0 11px;
+  background: #ffedd5;
+  color: #9a3412;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.status-badge.acceptee {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-badge.panne {
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 .regions-grid {
@@ -519,6 +561,190 @@ tr:last-child td {
   margin-bottom: 18px;
 }
 
+.workflow-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.request-card,
+.form-card {
+  border: 1px solid #dde4ef;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 12px 28px rgba(16, 35, 63, 0.07);
+}
+
+.request-card {
+  padding: 18px;
+}
+
+.request-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.details-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 16px;
+}
+
+.details-list div {
+  padding: 12px;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.details-list dt {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.details-list dd {
+  margin: 4px 0 0;
+  color: #162033;
+  font-weight: 700;
+}
+
+.impact-box {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 16px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1e3a8a;
+}
+
+.impact-box span {
+  color: #475569;
+  font-size: 13px;
+}
+
+.action-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.action-row.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.tag-list,
+.schema-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tag-list span,
+.schema-grid span {
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: #eef4fb;
+  color: #10233f;
+  font-weight: 800;
+}
+
+.form-card {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  padding: 18px;
+}
+
+.full-field {
+  grid-column: 1 / -1;
+}
+
+.form-card button {
+  justify-self: start;
+}
+
+.transfer-panel {
+  margin-top: 18px;
+}
+
+.transfer-route {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.transfer-route div {
+  padding: 14px;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.transfer-route span,
+.transfer-route strong {
+  display: block;
+}
+
+.transfer-route strong {
+  margin-top: 4px;
+  font-size: 22px;
+}
+
+.transfer-arrow {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  border-radius: 50%;
+  background: #1e88e5;
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.alerts-panel {
+  border-color: #fed7aa;
+  background: #fffaf3;
+}
+
+.alerts-list {
+  display: grid;
+  gap: 12px;
+}
+
+.alert-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.alert-row span {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: #f59e0b;
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.alert-row strong {
+  color: #7c2d12;
+}
+
 @media (max-width: 980px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -537,9 +763,12 @@ tr:last-child td {
   .dashboard-grid,
   .toolbar,
   .settings-panel,
+  .workflow-grid,
+  .details-list,
+  .form-card,
   .regions-grid,
   .report-grid,
-  .region-stock {
+  .alerts-list {
     grid-template-columns: 1fr;
   }
 
@@ -558,7 +787,11 @@ tr:last-child td {
   }
 
   .status-strip,
-  .report-actions {
+  .report-actions,
+  .action-row,
+  .action-row.three,
+  .transfer-route {
     flex-direction: column;
+    grid-template-columns: 1fr;
   }
 }

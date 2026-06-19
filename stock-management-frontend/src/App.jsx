@@ -1,15 +1,25 @@
 import { useMemo, useState } from 'react';
 import './App.css';
 
-const menuItems = [
+const adminMenuItems = [
   'Dashboard',
   'Materiels',
-  'Stock',
+  'Stocks',
+  'Demandes',
   'Mouvements',
   'Regions',
   'Utilisateurs',
+  'Maintenance',
   'Rapports',
-  'Parametres',
+];
+
+const regionMenuItems = [
+  'Dashboard',
+  'Mon Stock',
+  'Nouvelle Demande',
+  'Mes Demandes',
+  'Pannes',
+  'Historique',
 ];
 
 const stats = [
@@ -20,27 +30,42 @@ const stats = [
 ];
 
 const materials = [
-  { reference: 'MOD001', name: 'Modem Huawei HG8245', category: 'Reseau', quantity: 420, status: 'Disponible' },
-  { reference: 'TEL001', name: 'Telephone IP Cisco', category: 'Telephonie', quantity: 180, status: 'Disponible' },
+  { reference: 'MOD001', name: 'Modems', category: 'Reseau', quantity: 420, status: 'Disponible' },
+  { reference: 'ROU001', name: 'Routeurs', category: 'Reseau', quantity: 210, status: 'Disponible' },
+  { reference: 'TEL001', name: 'Telephones IP', category: 'Telephonie', quantity: 180, status: 'Disponible' },
+  { reference: 'SWT001', name: 'Switchs', category: 'Reseau', quantity: 75, status: 'Disponible' },
+  { reference: 'CAB001', name: 'Cables', category: 'Accessoires', quantity: 1200, status: 'Disponible' },
+  { reference: 'TAB001', name: 'Tables', category: 'Mobilier', quantity: 64, status: 'Disponible' },
+  { reference: 'CHA001', name: 'Chaises', category: 'Mobilier', quantity: 130, status: 'Disponible' },
+  { reference: 'ECR001', name: 'Ecrans', category: 'Informatique', quantity: 28, status: 'Stock faible' },
+  { reference: 'IMP001', name: 'Imprimantes', category: 'Informatique', quantity: 11, status: 'Stock faible' },
+  { reference: 'CLA001', name: 'Claviers', category: 'Informatique', quantity: 95, status: 'Disponible' },
+  { reference: 'SOU001', name: 'Souris', category: 'Informatique', quantity: 0, status: 'Rupture' },
   { reference: 'ONT014', name: 'ONT Fibre Nokia', category: 'Fibre optique', quantity: 92, status: 'Stock faible' },
-  { reference: 'CAB302', name: 'Cable RJ45 Cat 6', category: 'Accessoires', quantity: 1200, status: 'Disponible' },
-  { reference: 'SWT088', name: 'Switch 24 ports', category: 'Reseau', quantity: 0, status: 'Rupture' },
 ];
 
 const stockRows = [
-  { material: 'Modem Huawei HG8245', region: 'Tunis', available: 160, reserved: 24, min: 80 },
-  { material: 'Telephone IP Cisco', region: 'Sfax', available: 45, reserved: 12, min: 50 },
-  { material: 'ONT Fibre Nokia', region: 'Sousse', available: 18, reserved: 8, min: 30 },
-  { material: 'Switch 24 ports', region: 'Nabeul', available: 0, reserved: 4, min: 10 },
-  { material: 'Cable RJ45 Cat 6', region: 'Gabes', available: 310, reserved: 40, min: 120 },
+  { material: 'Modems', region: 'Tunis', available: 160, reserved: 24, min: 80 },
+  { material: 'Routeurs', region: 'Sfax', available: 55, reserved: 9, min: 40 },
+  { material: 'Telephones IP', region: 'Sousse', available: 45, reserved: 12, min: 50 },
+  { material: 'Switchs', region: 'Nabeul', available: 16, reserved: 4, min: 20 },
+  { material: 'Cables', region: 'Gabes', available: 310, reserved: 40, min: 120 },
+  { material: 'Tables', region: 'Bizerte', available: 22, reserved: 3, min: 15 },
+  { material: 'Chaises', region: 'Ariana', available: 68, reserved: 10, min: 40 },
+  { material: 'Ecrans', region: 'Monastir', available: 8, reserved: 5, min: 15 },
+  { material: 'Imprimantes', region: 'Kairouan', available: 3, reserved: 2, min: 8 },
+  { material: 'Claviers', region: 'Gafsa', available: 38, reserved: 7, min: 25 },
+  { material: 'Souris', region: 'Medenine', available: 0, reserved: 6, min: 20 },
 ];
 
 const movements = [
-  { date: '2026-06-17', region: 'Tunis', material: 'Modem Huawei HG8245', quantity: 30, type: 'ENTREE' },
-  { date: '2026-06-16', region: 'Sfax', material: 'Telephone IP Cisco', quantity: 12, type: 'SORTIE' },
-  { date: '2026-06-15', region: 'Nabeul', material: 'Switch 24 ports', quantity: 4, type: 'PANNE' },
+  { date: '2026-06-17', region: 'Tunis', material: 'Modems', quantity: 30, type: 'ENTREE' },
+  { date: '2026-06-16', region: 'Sfax', material: 'Telephones IP', quantity: 12, type: 'SORTIE' },
+  { date: '2026-06-15', region: 'Nabeul', material: 'Switchs', quantity: 4, type: 'PANNE' },
   { date: '2026-06-14', region: 'Sousse', material: 'ONT Fibre Nokia', quantity: 10, type: 'TRANSFERT' },
-  { date: '2026-06-13', region: 'Gabes', material: 'Cable RJ45 Cat 6', quantity: 50, type: 'RETOUR' },
+  { date: '2026-06-13', region: 'Gabes', material: 'Cables', quantity: 50, type: 'RETOUR' },
+  { date: '2026-06-12', region: 'Monastir', material: 'Ecrans', quantity: 6, type: 'SORTIE' },
+  { date: '2026-06-11', region: 'Gafsa', material: 'Claviers', quantity: 15, type: 'ENTREE' },
 ];
 
 const regions = [
@@ -76,9 +101,89 @@ const monthlyFlow = [
 
 const topMaterials = [
   { name: 'Modems', value: 88 },
-  { name: 'ONT Fibre', value: 74 },
+  { name: 'Routeurs', value: 76 },
   { name: 'Telephones IP', value: 58 },
   { name: 'Switchs', value: 42 },
+];
+
+const alerts = [
+  '5 materiels en rupture',
+  '3 materiels defectueux',
+  '12 demandes en attente',
+];
+
+const requests = [
+  {
+    id: 12,
+    region: 'Sfax',
+    material: 'Modem Huawei',
+    quantity: 50,
+    date: '19/06/2026',
+    reason: 'Installation nouveaux clients',
+    status: 'En attente',
+    currentStock: 10,
+  },
+  {
+    id: 13,
+    region: 'Gabes',
+    material: 'Modems',
+    quantity: 50,
+    date: '19/06/2026',
+    reason: 'Rupture stock agence Gabes',
+    status: 'En attente',
+    currentStock: 20,
+  },
+  {
+    id: 14,
+    region: 'Sousse',
+    material: 'Telephones IP',
+    quantity: 12,
+    date: '18/06/2026',
+    reason: 'Extension centre appel',
+    status: 'Acceptee',
+    currentStock: 45,
+  },
+];
+
+const maintenanceTickets = [
+  {
+    id: 7,
+    region: 'Sfax',
+    material: 'Switch Cisco',
+    quantity: 3,
+    state: 'Defectueux',
+    status: 'Notification panne',
+    date: '19/06/2026',
+  },
+  {
+    id: 8,
+    region: 'Nabeul',
+    material: 'Imprimantes',
+    quantity: 2,
+    state: 'Defectueux',
+    status: 'A reparer',
+    date: '18/06/2026',
+  },
+];
+
+const transferExample = {
+  material: 'Modems',
+  quantity: 50,
+  from: 'Tunis',
+  fromStock: 500,
+  to: 'Gabes',
+  toStock: 20,
+};
+
+const databaseTables = [
+  'users',
+  'regions',
+  'materiels',
+  'stocks',
+  'demandes',
+  'demande_details',
+  'mouvements',
+  'maintenance',
 ];
 
 function getStockStatus(row) {
@@ -172,16 +277,16 @@ function Dashboard() {
       <div className="dashboard-grid">
         <MiniBarChart title="Entrees / Sorties mensuelles" data={monthlyFlow} />
         <RankedBars title="Top materiels utilises" data={topMaterials} />
-        <section className="panel wide">
+        <section className="panel wide alerts-panel">
           <div className="panel-title">
-            <h2>Stock par region</h2>
-            <span>Disponible</span>
+            <h2>Alertes</h2>
+            <span>Prioritaire</span>
           </div>
-          <div className="region-stock">
-            {stockRows.map((row) => (
-              <div key={`${row.material}-${row.region}`}>
-                <span>{row.region}</span>
-                <strong>{row.available}</strong>
+          <div className="alerts-list">
+            {alerts.map((alert) => (
+              <div className="alert-row" key={alert}>
+                <span aria-hidden="true">!</span>
+                <strong>{alert}</strong>
               </div>
             ))}
           </div>
@@ -191,9 +296,174 @@ function Dashboard() {
   );
 }
 
+function RequestsPage() {
+  return (
+    <>
+      <PageHeader
+        title="Demandes"
+        description="Module central pour traiter les demandes de materiel des regions."
+        action={<button className="primary-button">+ Nouvelle Demande</button>}
+      />
+      <div className="workflow-grid">
+        {requests.map((request) => (
+          <article className="request-card" key={request.id}>
+            <div className="request-card-header">
+              <div>
+                <p className="eyebrow">Demande #{request.id}</p>
+                <h2>{request.region} - {request.material}</h2>
+              </div>
+              <span className={`status-badge ${request.status.toLowerCase().replace(' ', '-')}`}>
+                {request.status}
+              </span>
+            </div>
+            <dl className="details-list">
+              <div><dt>Stock actuel</dt><dd>{request.currentStock}</dd></div>
+              <div><dt>Quantite demandee</dt><dd>{request.quantity}</dd></div>
+              <div><dt>Date</dt><dd>{request.date}</dd></div>
+              <div><dt>Motif</dt><dd>{request.reason}</dd></div>
+            </dl>
+            <div className="impact-box">
+              <span>Si accepte:</span>
+              <strong>Stock central -{request.quantity}</strong>
+              <strong>Stock {request.region} +{request.quantity}</strong>
+              <span>Historique cree automatiquement</span>
+            </div>
+            <div className="action-row">
+              <button className="primary-button">Accepter</button>
+              <button className="danger-button">Refuser</button>
+            </div>
+          </article>
+        ))}
+      </div>
+      <section className="panel">
+        <div className="panel-title">
+          <h2>Motifs de refus</h2>
+          <span>Exemples</span>
+        </div>
+        <div className="tag-list">
+          <span>Stock insuffisant</span>
+          <span>Demande non justifiee</span>
+        </div>
+      </section>
+    </>
+  );
+}
+
+function MaintenancePage() {
+  return (
+    <>
+      <PageHeader
+        title="Maintenance"
+        description="Traitement des pannes declarees par les regions: reparer, remplacer ou reformer."
+      />
+      <div className="workflow-grid">
+        {maintenanceTickets.map((ticket) => (
+          <article className="request-card maintenance-card" key={ticket.id}>
+            <div className="request-card-header">
+              <div>
+                <p className="eyebrow">Panne #{ticket.id}</p>
+                <h2>{ticket.material}</h2>
+              </div>
+              <span className="status-badge panne">{ticket.state}</span>
+            </div>
+            <dl className="details-list">
+              <div><dt>Region</dt><dd>{ticket.region}</dd></div>
+              <div><dt>Quantite</dt><dd>{ticket.quantity}</dd></div>
+              <div><dt>Date</dt><dd>{ticket.date}</dd></div>
+              <div><dt>Statut</dt><dd>{ticket.status}</dd></div>
+            </dl>
+            <div className="action-row three">
+              <button className="primary-button">Reparer</button>
+              <button className="secondary-button">Remplacer</button>
+              <button className="danger-button">Reformer</button>
+            </div>
+          </article>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function RegionRequestPage() {
+  return (
+    <>
+      <PageHeader
+        title="Nouvelle Demande"
+        description="Le responsable region cree une demande visible par l'admin."
+      />
+      <section className="form-card">
+        <label>
+          Region
+          <input defaultValue="Sfax" />
+        </label>
+        <label>
+          Materiel
+          <select defaultValue="Modem Huawei">
+            <option>Modem Huawei</option>
+            <option>Routeurs</option>
+            <option>Switchs</option>
+            <option>Telephones IP</option>
+          </select>
+        </label>
+        <label>
+          Quantite
+          <input type="number" defaultValue="50" />
+        </label>
+        <label className="full-field">
+          Motif
+          <textarea defaultValue="Installation nouveaux clients" />
+        </label>
+        <button className="primary-button">Envoyer la demande</button>
+      </section>
+    </>
+  );
+}
+
+function RegionDashboard() {
+  return (
+    <>
+      <PageHeader
+        title="Dashboard Region"
+        description="Vue limitee aux donnees de la region connectee: Sfax."
+      />
+      <div className="stats-grid">
+        <StatCard label="Stock Sfax" value="10" tone="blue" />
+        <StatCard label="Demandes en attente" value="2" tone="orange" />
+        <StatCard label="Pannes declarees" value="3" tone="red" />
+        <StatCard label="Mouvements mois" value="18" tone="green" />
+      </div>
+    </>
+  );
+}
+
+function TransferPanel() {
+  return (
+    <section className="panel transfer-panel">
+      <div className="panel-title">
+        <h2>Transfert entre regions</h2>
+        <span>Exemple admin</span>
+      </div>
+      <div className="transfer-route">
+        <div>
+          <span>{transferExample.from}</span>
+          <strong>{transferExample.fromStock} modems</strong>
+        </div>
+        <span className="transfer-arrow">50</span>
+        <div>
+          <span>{transferExample.to}</span>
+          <strong>{transferExample.toStock} modems</strong>
+        </div>
+      </div>
+      <p>Creation d'un transfert de {transferExample.quantity} {transferExample.material}: {transferExample.from} vers {transferExample.to}. Le mouvement est enregistre automatiquement.</p>
+      <button className="primary-button">Creer transfert</button>
+    </section>
+  );
+}
+
 function MaterialsPage() {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('Toutes');
+  const [availability, setAvailability] = useState('Toutes');
 
   const categories = ['Toutes', ...new Set(materials.map((item) => item.category))];
   const filtered = useMemo(
@@ -201,9 +471,10 @@ function MaterialsPage() {
       materials.filter((item) => {
         const matchesQuery = `${item.reference} ${item.name}`.toLowerCase().includes(query.toLowerCase());
         const matchesCategory = category === 'Toutes' || item.category === category;
-        return matchesQuery && matchesCategory;
+        const matchesAvailability = availability === 'Toutes' || item.status === availability;
+        return matchesQuery && matchesCategory && matchesAvailability;
       }),
-    [category, query],
+    [availability, category, query],
   );
 
   return (
@@ -228,7 +499,7 @@ function MaterialsPage() {
         </label>
         <label>
           Disponibilite
-          <select defaultValue="Toutes">
+          <select value={availability} onChange={(event) => setAvailability(event.target.value)}>
             <option>Toutes</option>
             <option>Disponible</option>
             <option>Stock faible</option>
@@ -237,12 +508,15 @@ function MaterialsPage() {
         </label>
       </div>
       <DataTable
-        columns={['Reference', 'Nom', 'Categorie', 'Quantite', 'Action']}
+        columns={['Reference', 'Nom', 'Categorie', 'Quantite', 'Disponibilite', 'Action']}
         rows={filtered.map((item) => [
           item.reference,
           item.name,
           item.category,
           item.quantity,
+          <span className={`availability-badge ${item.status.toLowerCase().replace(' ', '-')}`} key={`${item.reference}-status`}>
+            {item.status}
+          </span>,
           <button className="ghost-button" key={item.reference}>Voir</button>,
         ])}
       />
@@ -274,6 +548,7 @@ function StockPage() {
           ])}
         />
       </div>
+      <TransferPanel />
     </>
   );
 }
@@ -364,6 +639,22 @@ function ReportsPage() {
   );
 }
 
+function DatabaseStructurePanel() {
+  return (
+    <section className="panel wide">
+      <div className="panel-title">
+        <h2>Structure base de donnees</h2>
+        <span>PostgreSQL</span>
+      </div>
+      <div className="schema-grid">
+        {databaseTables.map((table) => (
+          <span key={table}>{table}</span>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function SettingsPage() {
   return (
     <>
@@ -385,6 +676,7 @@ function SettingsPage() {
           <input defaultValue="data" />
         </label>
       </section>
+      <DatabaseStructurePanel />
     </>
   );
 }
@@ -414,18 +706,39 @@ function DataTable({ columns, rows }) {
   );
 }
 
-function renderPage(activePage) {
+function renderPage(activePage, role) {
+  if (role === 'region') {
+    switch (activePage) {
+      case 'Mon Stock':
+        return <StockPage />;
+      case 'Nouvelle Demande':
+        return <RegionRequestPage />;
+      case 'Mes Demandes':
+        return <RequestsPage />;
+      case 'Pannes':
+        return <MaintenancePage />;
+      case 'Historique':
+        return <MovementsPage />;
+      default:
+        return <RegionDashboard />;
+    }
+  }
+
   switch (activePage) {
     case 'Materiels':
       return <MaterialsPage />;
-    case 'Stock':
+    case 'Stocks':
       return <StockPage />;
+    case 'Demandes':
+      return <RequestsPage />;
     case 'Mouvements':
       return <MovementsPage />;
     case 'Regions':
       return <RegionsPage />;
     case 'Utilisateurs':
       return <UsersPage />;
+    case 'Maintenance':
+      return <MaintenancePage />;
     case 'Rapports':
       return <ReportsPage />;
     case 'Parametres':
@@ -437,6 +750,13 @@ function renderPage(activePage) {
 
 function App() {
   const [activePage, setActivePage] = useState('Dashboard');
+  const [role, setRole] = useState('admin');
+  const menuItems = role === 'admin' ? adminMenuItems : regionMenuItems;
+
+  function changeRole(nextRole) {
+    setRole(nextRole);
+    setActivePage('Dashboard');
+  }
 
   return (
     <div className="app-shell">
@@ -449,6 +769,14 @@ function App() {
             <strong>Tunisie Telecom</strong>
             <small>Stock Management</small>
           </div>
+        </div>
+        <div className="role-switch">
+          <button className={role === 'admin' ? 'active' : ''} onClick={() => changeRole('admin')} type="button">
+            Admin
+          </button>
+          <button className={role === 'region' ? 'active' : ''} onClick={() => changeRole('region')} type="button">
+            Region
+          </button>
         </div>
         <nav>
           {menuItems.map((item) => (
@@ -465,7 +793,7 @@ function App() {
         <button className="logout-button" type="button">Deconnexion</button>
       </aside>
       <main className="content">
-        {renderPage(activePage)}
+        {renderPage(activePage, role)}
       </main>
     </div>
   );
