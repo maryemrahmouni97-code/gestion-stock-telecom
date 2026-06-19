@@ -4,13 +4,14 @@ import './App.css';
 const adminMenuItems = [
   'Dashboard',
   'Materiels',
-  'Stocks',
+  'Stock Central',
   'Demandes',
   'Mouvements',
   'Regions',
   'Utilisateurs',
   'Maintenance',
   'Rapports',
+  'Parametres',
 ];
 
 const regionMenuItems = [
@@ -18,7 +19,7 @@ const regionMenuItems = [
   'Mon Stock',
   'Nouvelle Demande',
   'Mes Demandes',
-  'Pannes',
+  'Declaration de Panne',
   'Historique',
 ];
 
@@ -59,13 +60,87 @@ const stockRows = [
 ];
 
 const movements = [
-  { date: '2026-06-17', region: 'Tunis', material: 'Modems', quantity: 30, type: 'ENTREE' },
-  { date: '2026-06-16', region: 'Sfax', material: 'Telephones IP', quantity: 12, type: 'SORTIE' },
-  { date: '2026-06-15', region: 'Nabeul', material: 'Switchs', quantity: 4, type: 'PANNE' },
-  { date: '2026-06-14', region: 'Sousse', material: 'ONT Fibre Nokia', quantity: 10, type: 'TRANSFERT' },
-  { date: '2026-06-13', region: 'Gabes', material: 'Cables', quantity: 50, type: 'RETOUR' },
-  { date: '2026-06-12', region: 'Monastir', material: 'Ecrans', quantity: 6, type: 'SORTIE' },
-  { date: '2026-06-11', region: 'Gafsa', material: 'Claviers', quantity: 15, type: 'ENTREE' },
+  {
+    date: '19/06/2026',
+    region: 'Sfax',
+    material: 'Modem Huawei',
+    quantity: 50,
+    type: 'Entree',
+    provenanceDestination: 'Stock Central',
+    comment: 'Demande #12 validee',
+  },
+  {
+    date: '18/06/2026',
+    region: 'Sfax',
+    material: 'Telephone IP',
+    quantity: 12,
+    type: 'Sortie',
+    provenanceDestination: 'Techniciens Sfax',
+    comment: 'Installation client',
+  },
+  {
+    date: '17/06/2026',
+    region: 'Sfax',
+    material: 'Switch Cisco',
+    quantity: 3,
+    type: 'Panne',
+    provenanceDestination: '-',
+    comment: 'Declaration panne',
+  },
+  {
+    date: '16/06/2026',
+    region: 'Sfax',
+    material: 'Modems',
+    quantity: 8,
+    type: 'Transfert sortant',
+    provenanceDestination: 'Gabes',
+    comment: 'Support agence Gabes',
+  },
+  {
+    date: '15/06/2026',
+    region: 'Sfax',
+    material: 'Routeurs',
+    quantity: 6,
+    type: 'Transfert entrant',
+    provenanceDestination: 'Tunis',
+    comment: 'Renforcement stock Sfax',
+  },
+  {
+    date: '14/06/2026',
+    region: 'Sfax',
+    material: 'Imprimantes',
+    quantity: 2,
+    type: 'Retour',
+    provenanceDestination: 'Maintenance',
+    comment: 'Retour materiel repare',
+  },
+  {
+    date: '17/06/2026',
+    region: 'Tunis',
+    material: 'Modems',
+    quantity: 30,
+    type: 'Entree',
+    provenanceDestination: 'Stock Central',
+    comment: 'Approvisionnement mensuel',
+  },
+  {
+    date: '15/06/2026',
+    region: 'Nabeul',
+    material: 'Switchs',
+    quantity: 4,
+    type: 'Panne',
+    provenanceDestination: '-',
+    comment: 'Declaration panne',
+  },
+  {
+    date: '13/06/2026',
+    region: 'Gabes',
+    material: 'Cables',
+    quantity: 50,
+    type: 'Retour',
+    provenanceDestination: 'Techniciens Gabes',
+    comment: 'Retour chantier',
+  },
 ];
 
 const regions = [
@@ -110,6 +185,12 @@ const alerts = [
   '5 materiels en rupture',
   '3 materiels defectueux',
   '12 demandes en attente',
+];
+
+const refusalReasons = [
+  'Stock insuffisant',
+  'Demande non justifiee',
+  'Quantite excessive',
 ];
 
 const requests = [
@@ -176,14 +257,46 @@ const transferExample = {
 };
 
 const databaseTables = [
-  'users',
-  'regions',
-  'materiels',
-  'stocks',
-  'demandes',
-  'demande_details',
-  'mouvements',
-  'maintenance',
+  { name: 'users', columns: ['id', 'nom', 'email', 'mot_de_passe', 'role', 'region_id'] },
+  { name: 'regions', columns: ['id', 'nom_region', 'adresse'] },
+  { name: 'materiels', columns: ['id', 'reference', 'nom', 'categorie', 'description'] },
+  { name: 'stocks', columns: ['id', 'region_id', 'materiel_id', 'quantite', 'seuil_minimum'] },
+  { name: 'demandes', columns: ['id', 'region_id', 'date_demande', 'statut', 'motif'] },
+  { name: 'demande_details', columns: ['id', 'demande_id', 'materiel_id', 'quantite'] },
+  {
+    name: 'mouvements',
+    columns: ['id', 'materiel_id', 'quantite', 'type_mouvement', 'region_source', 'region_destination', 'date_mouvement'],
+  },
+  {
+    name: 'maintenance',
+    columns: ['id', 'materiel_id', 'region_id', 'quantite', 'etat', 'date_declaration', 'decision_admin'],
+  },
+];
+
+const actors = [
+  {
+    title: 'Administrateur Central',
+    can: [
+      'Gerer les materiels, stocks, regions et utilisateurs',
+      'Valider ou refuser les demandes',
+      'Effectuer les transferts de stock',
+      'Gerer les pannes, la maintenance et les rapports',
+    ],
+  },
+  {
+    title: 'Responsable Region',
+    can: [
+      'Consulter uniquement son stock',
+      'Faire et suivre ses demandes',
+      'Declarer une panne',
+      'Consulter son historique regional',
+    ],
+    cannot: [
+      'Voir les stocks des autres regions',
+      'Valider des demandes',
+      'Modifier le stock central',
+    ],
+  },
 ];
 
 function getStockStatus(row) {
@@ -275,8 +388,44 @@ function Dashboard() {
         ))}
       </div>
       <div className="dashboard-grid">
+        <section className="panel wide objective-panel">
+          <div className="panel-title">
+            <h2>Objectif principal</h2>
+            <span>Workflow stock</span>
+          </div>
+          <p>
+            Permettre aux regions de demander du materiel au stock central, puis a l'administrateur de
+            valider ou refuser ces demandes avec un suivi complet des stocks, mouvements et equipements defectueux.
+          </p>
+        </section>
         <MiniBarChart title="Entrees / Sorties mensuelles" data={monthlyFlow} />
         <RankedBars title="Top materiels utilises" data={topMaterials} />
+        <section className="panel wide">
+          <div className="panel-title">
+            <h2>Acteurs</h2>
+            <span>Droits d'acces</span>
+          </div>
+          <div className="actors-grid">
+            {actors.map((actor) => (
+              <article className="actor-card" key={actor.title}>
+                <h3>{actor.title}</h3>
+                <ul>
+                  {actor.can.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+                {actor.cannot && (
+                  <div className="restriction-box">
+                    <strong>Restrictions</strong>
+                    {actor.cannot.map((item) => (
+                      <span key={item}>{item}</span>
+                    ))}
+                  </div>
+                )}
+              </article>
+            ))}
+          </div>
+        </section>
         <section className="panel wide alerts-panel">
           <div className="panel-title">
             <h2>Alertes</h2>
@@ -296,16 +445,24 @@ function Dashboard() {
   );
 }
 
-function RequestsPage() {
+function RequestsPage({ role = 'admin' }) {
+  const [refusingRequestId, setRefusingRequestId] = useState(null);
+  const [selectedReasons, setSelectedReasons] = useState({});
+  const visibleRequests = role === 'region' ? requests.filter((request) => request.region === 'Sfax') : requests;
+
   return (
     <>
       <PageHeader
-        title="Demandes"
-        description="Module central pour traiter les demandes de materiel des regions."
-        action={<button className="primary-button">+ Nouvelle Demande</button>}
+        title={role === 'region' ? 'Mes Demandes' : 'Demandes'}
+        description={
+          role === 'region'
+            ? 'Suivi des demandes creees par la region Sfax.'
+            : 'Module central pour traiter les demandes de materiel des regions.'
+        }
+        action={role === 'admin' ? <button className="primary-button">+ Nouvelle Demande</button> : null}
       />
       <div className="workflow-grid">
-        {requests.map((request) => (
+        {visibleRequests.map((request) => (
           <article className="request-card" key={request.id}>
             <div className="request-card-header">
               <div>
@@ -322,29 +479,38 @@ function RequestsPage() {
               <div><dt>Date</dt><dd>{request.date}</dd></div>
               <div><dt>Motif</dt><dd>{request.reason}</dd></div>
             </dl>
-            <div className="impact-box">
-              <span>Si accepte:</span>
-              <strong>Stock central -{request.quantity}</strong>
-              <strong>Stock {request.region} +{request.quantity}</strong>
-              <span>Historique cree automatiquement</span>
-            </div>
-            <div className="action-row">
-              <button className="primary-button">Accepter</button>
-              <button className="danger-button">Refuser</button>
-            </div>
+            {role === 'admin' && (
+              <div className="action-row">
+                <button className="primary-button">Accepter</button>
+                <button
+                  className="danger-button"
+                  onClick={() => setRefusingRequestId(refusingRequestId === request.id ? null : request.id)}
+                  type="button"
+                >
+                  Refuser
+                </button>
+              </div>
+            )}
+            {role === 'admin' && refusingRequestId === request.id && (
+              <div className="refusal-panel">
+                <strong>Choisir le motif de refus</strong>
+                <div className="refusal-options">
+                  {refusalReasons.map((reason) => (
+                    <button
+                      className={selectedReasons[request.id] === reason ? 'selected' : ''}
+                      key={reason}
+                      onClick={() => setSelectedReasons({ ...selectedReasons, [request.id]: reason })}
+                      type="button"
+                    >
+                      {reason}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </article>
         ))}
       </div>
-      <section className="panel">
-        <div className="panel-title">
-          <h2>Motifs de refus</h2>
-          <span>Exemples</span>
-        </div>
-        <div className="tag-list">
-          <span>Stock insuffisant</span>
-          <span>Demande non justifiee</span>
-        </div>
-      </section>
     </>
   );
 }
@@ -414,6 +580,40 @@ function RegionRequestPage() {
           <textarea defaultValue="Installation nouveaux clients" />
         </label>
         <button className="primary-button">Envoyer la demande</button>
+      </section>
+    </>
+  );
+}
+
+function BreakdownDeclarationPage() {
+  return (
+    <>
+      <PageHeader
+        title="Declaration de Panne"
+        description="La region declare les equipements defectueux pour decision administrative."
+      />
+      <section className="form-card">
+        <label>
+          Region
+          <input defaultValue="Sfax" />
+        </label>
+        <label>
+          Materiel
+          <select defaultValue="Switch Cisco">
+            <option>Switch Cisco</option>
+            <option>Modem Huawei</option>
+            <option>Imprimantes</option>
+          </select>
+        </label>
+        <label>
+          Quantite
+          <input type="number" defaultValue="3" />
+        </label>
+        <label>
+          Etat
+          <input defaultValue="Defectueux" />
+        </label>
+        <button className="primary-button">Declarer la panne</button>
       </section>
     </>
   );
@@ -524,12 +724,18 @@ function MaterialsPage() {
   );
 }
 
-function StockPage() {
+function StockPage({ role = 'admin' }) {
+  const visibleStocks = role === 'region' ? stockRows.filter((row) => row.region === 'Sfax') : stockRows;
+
   return (
     <>
       <PageHeader
-        title="Stock"
-        description="Suivi prioritaire des disponibilites par region avec seuils minimums."
+        title={role === 'region' ? 'Mon Stock' : 'Stock Central'}
+        description={
+          role === 'region'
+            ? 'Stock disponible uniquement pour la region Sfax.'
+            : 'Suivi prioritaire des disponibilites par region avec seuils minimums.'
+        }
       />
       <div className="status-strip">
         <span><i className="status-dot normal" /> Stock normal</span>
@@ -539,7 +745,7 @@ function StockPage() {
       <div className="stock-table">
         <DataTable
           columns={['Materiel', 'Region', 'Disponible', 'Reserve', 'Seuil Mini']}
-          rows={stockRows.map((row) => [
+          rows={visibleStocks.map((row) => [
             row.material,
             row.region,
             <span className={`stock-pill ${getStockStatus(row)}`} key={`${row.material}-stock`}>{row.available}</span>,
@@ -548,28 +754,43 @@ function StockPage() {
           ])}
         />
       </div>
-      <TransferPanel />
+      {role === 'admin' && <TransferPanel />}
     </>
   );
 }
 
-function MovementsPage() {
+function MovementsPage({ role = 'admin' }) {
+  const visibleMovements = role === 'region' ? movements.filter((item) => item.region === 'Sfax') : movements;
+  const columns =
+    role === 'region'
+      ? ['Date', 'Materiel', 'Quantite', 'Type', 'Provenance / Destination', 'Commentaire']
+      : ['Date', 'Region', 'Materiel', 'Quantite', 'Type', 'Provenance / Destination', 'Commentaire'];
+  const rows = visibleMovements.map((item) => {
+    const commonCells = [
+      item.date,
+      item.material,
+      item.quantity,
+      <span className={`type-badge ${item.type.toLowerCase().replaceAll(' ', '-')}`} key={`${item.date}-${item.type}`}>
+        {item.type}
+      </span>,
+      item.provenanceDestination,
+      item.comment,
+    ];
+
+    return role === 'region' ? commonCells : [item.date, item.region, ...commonCells.slice(1)];
+  });
+
   return (
     <>
       <PageHeader
-        title="Mouvements"
-        description="Historique complet des entrees, sorties, transferts, retours et pannes."
+        title={role === 'region' ? 'Mon Historique' : 'Mouvements'}
+        description={
+          role === 'region'
+            ? 'Historique des mouvements de stock de la region Sfax uniquement.'
+            : 'Historique complet des entrees, sorties, transferts, retours et pannes.'
+        }
       />
-      <DataTable
-        columns={['Date', 'Region', 'Materiel', 'Quantite', 'Type']}
-        rows={movements.map((item) => [
-          item.date,
-          item.region,
-          item.material,
-          item.quantity,
-          <span className={`type-badge ${item.type.toLowerCase()}`} key={`${item.date}-${item.type}`}>{item.type}</span>,
-        ])}
-      />
+      <DataTable columns={columns} rows={rows} />
     </>
   );
 }
@@ -648,7 +869,14 @@ function DatabaseStructurePanel() {
       </div>
       <div className="schema-grid">
         {databaseTables.map((table) => (
-          <span key={table}>{table}</span>
+          <article className="schema-card" key={table.name}>
+            <h3>{table.name}</h3>
+            <ul>
+              {table.columns.map((column) => (
+                <li key={column}>{column}</li>
+              ))}
+            </ul>
+          </article>
         ))}
       </div>
     </section>
@@ -710,15 +938,15 @@ function renderPage(activePage, role) {
   if (role === 'region') {
     switch (activePage) {
       case 'Mon Stock':
-        return <StockPage />;
+        return <StockPage role={role} />;
       case 'Nouvelle Demande':
         return <RegionRequestPage />;
       case 'Mes Demandes':
-        return <RequestsPage />;
-      case 'Pannes':
-        return <MaintenancePage />;
+        return <RequestsPage role={role} />;
+      case 'Declaration de Panne':
+        return <BreakdownDeclarationPage />;
       case 'Historique':
-        return <MovementsPage />;
+        return <MovementsPage role={role} />;
       default:
         return <RegionDashboard />;
     }
@@ -727,12 +955,12 @@ function renderPage(activePage, role) {
   switch (activePage) {
     case 'Materiels':
       return <MaterialsPage />;
-    case 'Stocks':
-      return <StockPage />;
+    case 'Stock Central':
+      return <StockPage role={role} />;
     case 'Demandes':
-      return <RequestsPage />;
+      return <RequestsPage role={role} />;
     case 'Mouvements':
-      return <MovementsPage />;
+      return <MovementsPage role={role} />;
     case 'Regions':
       return <RegionsPage />;
     case 'Utilisateurs':

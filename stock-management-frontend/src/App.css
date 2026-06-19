@@ -161,6 +161,11 @@ h2 {
   font-size: 18px;
 }
 
+h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
 .page-header p:not(.eyebrow),
 .panel p {
   max-width: 680px;
@@ -488,13 +493,20 @@ tr:last-child td {
   color: #075985;
 }
 
+.type-badge.entree {
+  background: #dcfce7;
+  color: #166534;
+}
+
 .type-badge.sortie,
 .type-badge.panne {
   background: #fee2e2;
   color: #991b1b;
 }
 
-.type-badge.transfert {
+.type-badge.transfert,
+.type-badge.transfert-entrant,
+.type-badge.transfert-sortant {
   background: #ede9fe;
   color: #5b21b6;
 }
@@ -614,21 +626,6 @@ tr:last-child td {
   font-weight: 700;
 }
 
-.impact-box {
-  display: grid;
-  gap: 6px;
-  margin-bottom: 16px;
-  padding: 12px;
-  border-radius: 8px;
-  background: #eff6ff;
-  color: #1e3a8a;
-}
-
-.impact-box span {
-  color: #475569;
-  font-size: 13px;
-}
-
 .action-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -639,6 +636,44 @@ tr:last-child td {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.refusal-panel {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fff7f7;
+}
+
+.refusal-panel strong {
+  color: #991b1b;
+}
+
+.refusal-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.refusal-options button {
+  min-height: 34px;
+  border: 1px solid #fecaca;
+  border-radius: 999px;
+  padding: 0 12px;
+  background: #ffffff;
+  color: #991b1b;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.refusal-options button.selected {
+  background: #dc2626;
+  color: #ffffff;
+}
+
 .tag-list,
 .schema-grid {
   display: flex;
@@ -646,13 +681,78 @@ tr:last-child td {
   gap: 10px;
 }
 
-.tag-list span,
-.schema-grid span {
+.tag-list span {
   border-radius: 999px;
   padding: 8px 12px;
   background: #eef4fb;
   color: #10233f;
   font-weight: 800;
+}
+
+.schema-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.schema-card,
+.actor-card {
+  border: 1px solid #dde4ef;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 14px;
+}
+
+.schema-card h3,
+.actor-card h3 {
+  margin-bottom: 10px;
+  color: #10233f;
+}
+
+.schema-card ul,
+.actor-card ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.schema-card li,
+.actor-card li,
+.restriction-box span {
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: #ffffff;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.actors-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.objective-panel {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+
+.restriction-box {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #dde4ef;
+}
+
+.restriction-box strong {
+  width: 100%;
+  color: #991b1b;
 }
 
 .form-card {
@@ -766,6 +866,8 @@ tr:last-child td {
   .workflow-grid,
   .details-list,
   .form-card,
+  .actors-grid,
+  .schema-grid,
   .regions-grid,
   .report-grid,
   .alerts-list {
