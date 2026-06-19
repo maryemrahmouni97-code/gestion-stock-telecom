@@ -11,7 +11,6 @@ const adminMenuItems = [
   'Utilisateurs',
   'Maintenance',
   'Rapports',
-  'Parametres',
 ];
 
 const regionMenuItems = [
@@ -256,49 +255,6 @@ const transferExample = {
   toStock: 20,
 };
 
-const databaseTables = [
-  { name: 'users', columns: ['id', 'nom', 'email', 'mot_de_passe', 'role', 'region_id'] },
-  { name: 'regions', columns: ['id', 'nom_region', 'adresse'] },
-  { name: 'materiels', columns: ['id', 'reference', 'nom', 'categorie', 'description'] },
-  { name: 'stocks', columns: ['id', 'region_id', 'materiel_id', 'quantite', 'seuil_minimum'] },
-  { name: 'demandes', columns: ['id', 'region_id', 'date_demande', 'statut', 'motif'] },
-  { name: 'demande_details', columns: ['id', 'demande_id', 'materiel_id', 'quantite'] },
-  {
-    name: 'mouvements',
-    columns: ['id', 'materiel_id', 'quantite', 'type_mouvement', 'region_source', 'region_destination', 'date_mouvement'],
-  },
-  {
-    name: 'maintenance',
-    columns: ['id', 'materiel_id', 'region_id', 'quantite', 'etat', 'date_declaration', 'decision_admin'],
-  },
-];
-
-const actors = [
-  {
-    title: 'Administrateur Central',
-    can: [
-      'Gerer les materiels, stocks, regions et utilisateurs',
-      'Valider ou refuser les demandes',
-      'Effectuer les transferts de stock',
-      'Gerer les pannes, la maintenance et les rapports',
-    ],
-  },
-  {
-    title: 'Responsable Region',
-    can: [
-      'Consulter uniquement son stock',
-      'Faire et suivre ses demandes',
-      'Declarer une panne',
-      'Consulter son historique regional',
-    ],
-    cannot: [
-      'Voir les stocks des autres regions',
-      'Valider des demandes',
-      'Modifier le stock central',
-    ],
-  },
-];
-
 function getStockStatus(row) {
   if (row.available === 0) return 'rupture';
   if (row.available <= row.min) return 'faible';
@@ -388,44 +344,8 @@ function Dashboard() {
         ))}
       </div>
       <div className="dashboard-grid">
-        <section className="panel wide objective-panel">
-          <div className="panel-title">
-            <h2>Objectif principal</h2>
-            <span>Workflow stock</span>
-          </div>
-          <p>
-            Permettre aux regions de demander du materiel au stock central, puis a l'administrateur de
-            valider ou refuser ces demandes avec un suivi complet des stocks, mouvements et equipements defectueux.
-          </p>
-        </section>
         <MiniBarChart title="Entrees / Sorties mensuelles" data={monthlyFlow} />
         <RankedBars title="Top materiels utilises" data={topMaterials} />
-        <section className="panel wide">
-          <div className="panel-title">
-            <h2>Acteurs</h2>
-            <span>Droits d'acces</span>
-          </div>
-          <div className="actors-grid">
-            {actors.map((actor) => (
-              <article className="actor-card" key={actor.title}>
-                <h3>{actor.title}</h3>
-                <ul>
-                  {actor.can.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-                {actor.cannot && (
-                  <div className="restriction-box">
-                    <strong>Restrictions</strong>
-                    {actor.cannot.map((item) => (
-                      <span key={item}>{item}</span>
-                    ))}
-                  </div>
-                )}
-              </article>
-            ))}
-          </div>
-        </section>
         <section className="panel wide alerts-panel">
           <div className="panel-title">
             <h2>Alertes</h2>
@@ -860,55 +780,6 @@ function ReportsPage() {
   );
 }
 
-function DatabaseStructurePanel() {
-  return (
-    <section className="panel wide">
-      <div className="panel-title">
-        <h2>Structure base de donnees</h2>
-        <span>PostgreSQL</span>
-      </div>
-      <div className="schema-grid">
-        {databaseTables.map((table) => (
-          <article className="schema-card" key={table.name}>
-            <h3>{table.name}</h3>
-            <ul>
-              {table.columns.map((column) => (
-                <li key={column}>{column}</li>
-              ))}
-            </ul>
-          </article>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function SettingsPage() {
-  return (
-    <>
-      <PageHeader
-        title="Parametres"
-        description="Configuration de l'application, seuils de stock et connexion PostgreSQL."
-      />
-      <section className="settings-panel">
-        <label>
-          Seuil faible par defaut
-          <input type="number" defaultValue="30" />
-        </label>
-        <label>
-          Port API Spring Boot
-          <input defaultValue="8081" />
-        </label>
-        <label>
-          Base PostgreSQL
-          <input defaultValue="data" />
-        </label>
-      </section>
-      <DatabaseStructurePanel />
-    </>
-  );
-}
-
 function DataTable({ columns, rows }) {
   return (
     <div className="table-shell">
@@ -969,8 +840,6 @@ function renderPage(activePage, role) {
       return <MaintenancePage />;
     case 'Rapports':
       return <ReportsPage />;
-    case 'Parametres':
-      return <SettingsPage />;
     default:
       return <Dashboard />;
   }
