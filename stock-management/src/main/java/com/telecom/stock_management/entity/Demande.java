@@ -1,5 +1,6 @@
 package com.telecom.stock_management.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.telecom.stock_management.enums.DemandeStatus;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -20,6 +21,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "demandes")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Demande {
 
     @Id
@@ -44,6 +46,7 @@ public class Demande {
     private String motifRefus;
 
     @OneToMany(mappedBy = "demande", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnoreProperties({"demande", "hibernateLazyInitializer", "handler"})
     private List<DemandeDetail> details = new ArrayList<>();
 
     public Demande() {

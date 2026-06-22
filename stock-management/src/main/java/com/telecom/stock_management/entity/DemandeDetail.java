@@ -1,5 +1,6 @@
 package com.telecom.stock_management.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -12,6 +13,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "demande_details")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class DemandeDetail {
 
     @Id
@@ -20,6 +22,7 @@ public class DemandeDetail {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "demande_id", nullable = false)
+    @JsonIgnoreProperties({"details", "hibernateLazyInitializer", "handler"})
     private Demande demande;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

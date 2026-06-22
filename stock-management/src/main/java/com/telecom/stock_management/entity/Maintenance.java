@@ -1,5 +1,6 @@
 package com.telecom.stock_management.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.telecom.stock_management.enums.DecisionMaintenance;
 import com.telecom.stock_management.enums.EtatMaintenance;
 import jakarta.persistence.Column;
@@ -17,6 +18,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "maintenance")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Maintenance {
 
     @Id

@@ -1,5 +1,6 @@
 package com.telecom.stock_management.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -16,6 +17,7 @@ import jakarta.persistence.UniqueConstraint;
     name = "stocks",
     uniqueConstraints = @UniqueConstraint(columnNames = {"region_id", "materiel_id"})
 )
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Stock {
 
     @Id
