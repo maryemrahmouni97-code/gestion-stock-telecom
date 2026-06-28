@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import './App.css';
+import { createItem, deleteItem, endpoints, getAll, updateItem } from './api';
 
 const adminMenuItems = [
   'Dashboard',
@@ -22,243 +23,84 @@ const regionMenuItems = [
   'Historique',
 ];
 
-const stats = [
-  { label: 'Total Materiels', value: '2500', tone: 'blue' },
-  { label: 'Total Regions', value: '24', tone: 'green' },
-  { label: 'Stock Faible', value: '15', tone: 'orange' },
-  { label: 'Materiels Defectueux', value: '8', tone: 'red' },
-];
-
-const materials = [
-  { reference: 'MOD001', name: 'Modems', category: 'Reseau', quantity: 420, status: 'Disponible' },
-  { reference: 'ROU001', name: 'Routeurs', category: 'Reseau', quantity: 210, status: 'Disponible' },
-  { reference: 'TEL001', name: 'Telephones IP', category: 'Telephonie', quantity: 180, status: 'Disponible' },
-  { reference: 'SWT001', name: 'Switchs', category: 'Reseau', quantity: 75, status: 'Disponible' },
-  { reference: 'CAB001', name: 'Cables', category: 'Accessoires', quantity: 1200, status: 'Disponible' },
-  { reference: 'TAB001', name: 'Tables', category: 'Mobilier', quantity: 64, status: 'Disponible' },
-  { reference: 'CHA001', name: 'Chaises', category: 'Mobilier', quantity: 130, status: 'Disponible' },
-  { reference: 'ECR001', name: 'Ecrans', category: 'Informatique', quantity: 28, status: 'Stock faible' },
-  { reference: 'IMP001', name: 'Imprimantes', category: 'Informatique', quantity: 11, status: 'Stock faible' },
-  { reference: 'CLA001', name: 'Claviers', category: 'Informatique', quantity: 95, status: 'Disponible' },
-  { reference: 'SOU001', name: 'Souris', category: 'Informatique', quantity: 0, status: 'Rupture' },
-  { reference: 'ONT014', name: 'ONT Fibre Nokia', category: 'Fibre optique', quantity: 92, status: 'Stock faible' },
-];
-
-const stockRows = [
-  { material: 'Modems', region: 'Tunis', available: 160, reserved: 24, min: 80 },
-  { material: 'Routeurs', region: 'Sfax', available: 55, reserved: 9, min: 40 },
-  { material: 'Telephones IP', region: 'Sousse', available: 45, reserved: 12, min: 50 },
-  { material: 'Switchs', region: 'Nabeul', available: 16, reserved: 4, min: 20 },
-  { material: 'Cables', region: 'Gabes', available: 310, reserved: 40, min: 120 },
-  { material: 'Tables', region: 'Bizerte', available: 22, reserved: 3, min: 15 },
-  { material: 'Chaises', region: 'Ariana', available: 68, reserved: 10, min: 40 },
-  { material: 'Ecrans', region: 'Monastir', available: 8, reserved: 5, min: 15 },
-  { material: 'Imprimantes', region: 'Kairouan', available: 3, reserved: 2, min: 8 },
-  { material: 'Claviers', region: 'Gafsa', available: 38, reserved: 7, min: 25 },
-  { material: 'Souris', region: 'Medenine', available: 0, reserved: 6, min: 20 },
-];
-
-const movements = [
-  {
-    date: '19/06/2026',
-    region: 'Sfax',
-    material: 'Modem Huawei',
-    quantity: 50,
-    type: 'Entree',
-    provenanceDestination: 'Stock Central',
-    comment: 'Demande #12 validee',
-  },
-  {
-    date: '18/06/2026',
-    region: 'Sfax',
-    material: 'Telephone IP',
-    quantity: 12,
-    type: 'Sortie',
-    provenanceDestination: 'Techniciens Sfax',
-    comment: 'Installation client',
-  },
-  {
-    date: '17/06/2026',
-    region: 'Sfax',
-    material: 'Switch Cisco',
-    quantity: 3,
-    type: 'Panne',
-    provenanceDestination: '-',
-    comment: 'Declaration panne',
-  },
-  {
-    date: '16/06/2026',
-    region: 'Sfax',
-    material: 'Modems',
-    quantity: 8,
-    type: 'Transfert sortant',
-    provenanceDestination: 'Gabes',
-    comment: 'Support agence Gabes',
-  },
-  {
-    date: '15/06/2026',
-    region: 'Sfax',
-    material: 'Routeurs',
-    quantity: 6,
-    type: 'Transfert entrant',
-    provenanceDestination: 'Tunis',
-    comment: 'Renforcement stock Sfax',
-  },
-  {
-    date: '14/06/2026',
-    region: 'Sfax',
-    material: 'Imprimantes',
-    quantity: 2,
-    type: 'Retour',
-    provenanceDestination: 'Maintenance',
-    comment: 'Retour materiel repare',
-  },
-  {
-    date: '17/06/2026',
-    region: 'Tunis',
-    material: 'Modems',
-    quantity: 30,
-    type: 'Entree',
-    provenanceDestination: 'Stock Central',
-    comment: 'Approvisionnement mensuel',
-  },
-  {
-    date: '15/06/2026',
-    region: 'Nabeul',
-    material: 'Switchs',
-    quantity: 4,
-    type: 'Panne',
-    provenanceDestination: '-',
-    comment: 'Declaration panne',
-  },
-  {
-    date: '13/06/2026',
-    region: 'Gabes',
-    material: 'Cables',
-    quantity: 50,
-    type: 'Retour',
-    provenanceDestination: 'Techniciens Gabes',
-    comment: 'Retour chantier',
-  },
-];
-
-const regions = [
-  'Tunis',
-  'Sfax',
-  'Sousse',
-  'Nabeul',
-  'Gabes',
-  'Bizerte',
-  'Ariana',
-  'Monastir',
-  'Kairouan',
-  'Gafsa',
-  'Medenine',
-  'Tozeur',
-];
-
-const users = [
-  { name: 'Amine Trabelsi', email: 'amine.trabelsi@telecom.tn', region: 'Tunis', role: 'Admin' },
-  { name: 'Sarra Ben Ali', email: 'sarra.benali@telecom.tn', region: 'Sfax', role: 'Responsable Region' },
-  { name: 'Youssef Mansouri', email: 'youssef.mansouri@telecom.tn', region: 'Sousse', role: 'Responsable Region' },
-  { name: 'Nour Hammami', email: 'nour.hammami@telecom.tn', region: 'Nabeul', role: 'Responsable Stock' },
-];
-
-const monthlyFlow = [
-  { month: 'Jan', in: 65, out: 42 },
-  { month: 'Fev', in: 78, out: 55 },
-  { month: 'Mar', in: 52, out: 61 },
-  { month: 'Avr', in: 88, out: 70 },
-  { month: 'Mai', in: 94, out: 73 },
-  { month: 'Juin', in: 72, out: 58 },
-];
-
-const topMaterials = [
-  { name: 'Modems', value: 88 },
-  { name: 'Routeurs', value: 76 },
-  { name: 'Telephones IP', value: 58 },
-  { name: 'Switchs', value: 42 },
-];
-
-const alerts = [
-  '5 materiels en rupture',
-  '3 materiels defectueux',
-  '12 demandes en attente',
-];
-
 const refusalReasons = [
   'Stock insuffisant',
   'Demande non justifiee',
   'Quantite excessive',
 ];
 
-const requests = [
-  {
-    id: 12,
-    region: 'Sfax',
-    material: 'Modem Huawei',
-    quantity: 50,
-    date: '19/06/2026',
-    reason: 'Installation nouveaux clients',
-    status: 'En attente',
-    currentStock: 10,
-  },
-  {
-    id: 13,
-    region: 'Gabes',
-    material: 'Modems',
-    quantity: 50,
-    date: '19/06/2026',
-    reason: 'Rupture stock agence Gabes',
-    status: 'En attente',
-    currentStock: 20,
-  },
-  {
-    id: 14,
-    region: 'Sousse',
-    material: 'Telephones IP',
-    quantity: 12,
-    date: '18/06/2026',
-    reason: 'Extension centre appel',
-    status: 'Acceptee',
-    currentStock: 45,
-  },
-];
-
-const maintenanceTickets = [
-  {
-    id: 7,
-    region: 'Sfax',
-    material: 'Switch Cisco',
-    quantity: 3,
-    state: 'Defectueux',
-    status: 'Notification panne',
-    date: '19/06/2026',
-  },
-  {
-    id: 8,
-    region: 'Nabeul',
-    material: 'Imprimantes',
-    quantity: 2,
-    state: 'Defectueux',
-    status: 'A reparer',
-    date: '18/06/2026',
-  },
-];
-
-const transferExample = {
-  material: 'Modems',
-  quantity: 50,
-  from: 'Tunis',
-  fromStock: 500,
-  to: 'Gabes',
-  toStock: 20,
-};
-
 function getStockStatus(row) {
-  if (row.available === 0) return 'rupture';
-  if (row.available <= row.min) return 'faible';
+  if (row.quantite === 0) return 'rupture';
+  if (row.quantite <= row.seuilMinimum) return 'faible';
   return 'normal';
+}
+
+const DataContext = createContext(null);
+
+function formatDate(value) {
+  return value ? new Intl.DateTimeFormat('fr-FR').format(new Date(value)) : '-';
+}
+
+function formatEnum(value = '') {
+  return value.toLowerCase().replaceAll('_', ' ').replace(/^./, (letter) => letter.toUpperCase());
+}
+
+function ask(label, initialValue = '') {
+  return window.prompt(label, initialValue ?? '');
+}
+
+function useData() {
+  return useContext(DataContext);
+}
+
+function useApiData() {
+  const [data, setData] = useState(() => Object.fromEntries(Object.keys(endpoints).map((key) => [key, []])));
+  const [error, setError] = useState('');
+
+  async function refresh(signal) {
+    try {
+      const entries = await Promise.all(
+        Object.entries(endpoints).map(async ([key, endpoint]) => [key, await getAll(endpoint, signal)]),
+      );
+      setData(Object.fromEntries(entries));
+      setError('');
+    } catch (requestError) {
+      if (requestError.name !== 'AbortError') setError(requestError.message);
+    }
+  }
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => refresh(controller.signal), 0);
+    return () => {
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, []);
+
+  async function mutate(resource, method, id, payload) {
+    try {
+      if (method === 'POST') await createItem(endpoints[resource], payload);
+      if (method === 'PUT') await updateItem(endpoints[resource], id, payload);
+      if (method === 'DELETE') await deleteItem(endpoints[resource], id);
+      await refresh();
+      return true;
+    } catch (requestError) {
+      setError(requestError.message);
+      return false;
+    }
+  }
+
+  return { ...data, error, mutate, refresh };
+}
+
+function CrudButtons({ onEdit, onDelete }) {
+  return (
+    <div className="action-row">
+      <button className="ghost-button" onClick={onEdit} type="button">Modifier</button>
+      <button className="danger-button" onClick={onDelete} type="button">Supprimer</button>
+    </div>
+  );
 }
 
 function PageHeader({ title, description, action }) {
@@ -332,6 +174,44 @@ function RankedBars({ title, data }) {
 }
 
 function Dashboard() {
+  const { materials, regions, stocks, requests, movements, maintenances } = useData();
+  const stats = [
+    { label: 'Total Materiels', value: materials.length, tone: 'blue' },
+    { label: 'Total Regions', value: regions.length, tone: 'green' },
+    { label: 'Stock Faible', value: stocks.filter((stock) => stock.quantite <= stock.seuilMinimum).length, tone: 'orange' },
+    { label: 'Materiels Defectueux', value: maintenances.filter((item) => item.etat === 'DEFECTUEUX').length, tone: 'red' },
+  ];
+  const movementTotals = movements.reduce((totals, movement) => {
+    const month = new Date(movement.dateMouvement).getMonth();
+    if (month >= 0 && month < 12) {
+      if (movement.typeMouvement === 'ENTREE') totals[month].in += movement.quantite;
+      if (movement.typeMouvement === 'SORTIE') totals[month].out += movement.quantite;
+    }
+    return totals;
+  }, Array.from({ length: 12 }, () => ({ in: 0, out: 0 })));
+  const maxFlow = Math.max(1, ...movementTotals.flatMap((item) => [item.in, item.out]));
+  const monthNames = ['Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aout', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const monthlyFlow = movementTotals.map((item, index) => ({
+    month: monthNames[index],
+    in: (item.in / maxFlow) * 100,
+    out: (item.out / maxFlow) * 100,
+  }));
+  const usage = movements.reduce((result, movement) => {
+    const name = movement.materiel?.nom || 'Inconnu';
+    result[name] = (result[name] || 0) + movement.quantite;
+    return result;
+  }, {});
+  const maxUsage = Math.max(1, ...Object.values(usage));
+  const topMaterials = Object.entries(usage)
+    .sort(([, first], [, second]) => second - first)
+    .slice(0, 4)
+    .map(([name, quantity]) => ({ name, value: Math.round((quantity / maxUsage) * 100) }));
+  const alerts = [
+    `${stocks.filter((stock) => stock.quantite === 0).length} materiels en rupture`,
+    `${maintenances.filter((item) => item.etat === 'DEFECTUEUX').length} materiels defectueux`,
+    `${requests.filter((request) => request.statut === 'EN_ATTENTE').length} demandes en attente`,
+  ];
+
   return (
     <>
       <PageHeader
@@ -366,9 +246,38 @@ function Dashboard() {
 }
 
 function RequestsPage({ role = 'admin' }) {
+  const { regions, requests, stocks, mutate } = useData();
   const [refusingRequestId, setRefusingRequestId] = useState(null);
   const [selectedReasons, setSelectedReasons] = useState({});
-  const visibleRequests = role === 'region' ? requests.filter((request) => request.region === 'Sfax') : requests;
+  const connectedRegion = regions[0];
+  const visibleRequests = role === 'region'
+    ? requests.filter((request) => request.region?.id === connectedRegion?.id)
+    : requests;
+
+  function updateRequest(request, changes) {
+    return mutate('requests', 'PUT', request.id, { ...request, ...changes });
+  }
+
+  async function editDetail(request, detail) {
+    const quantity = ask('Quantite demandee', detail.quantite);
+    if (quantity === null) return;
+    await mutate('requestDetails', 'PUT', detail.id, {
+      ...detail,
+      demande: { id: request.id },
+      materiel: { id: detail.materiel.id },
+      quantite: Number(quantity),
+    });
+  }
+
+  async function addDetail(request) {
+    const materialId = ask('Identifiant materiel');
+    if (materialId === null) return;
+    const quantity = ask('Quantite demandee', 1);
+    if (quantity === null) return;
+    await mutate('requestDetails', 'POST', null, {
+      demande: { id: request.id }, materiel: { id: Number(materialId) }, quantite: Number(quantity),
+    });
+  }
 
   return (
     <>
@@ -379,29 +288,33 @@ function RequestsPage({ role = 'admin' }) {
             ? 'Suivi des demandes creees par la region Sfax.'
             : 'Module central pour traiter les demandes de materiel des regions.'
         }
-        action={role === 'admin' ? <button className="primary-button">+ Nouvelle Demande</button> : null}
       />
       <div className="workflow-grid">
-        {visibleRequests.map((request) => (
+        {visibleRequests.map((request) => {
+          const detail = request.details?.[0];
+          const stock = stocks.find(
+            (item) => item.region?.id === request.region?.id && item.materiel?.id === detail?.materiel?.id,
+          );
+          return (
           <article className="request-card" key={request.id}>
             <div className="request-card-header">
               <div>
                 <p className="eyebrow">Demande #{request.id}</p>
-                <h2>{request.region} - {request.material}</h2>
+                <h2>{request.region?.nomRegion} - {detail?.materiel?.nom || 'Sans detail'}</h2>
               </div>
-              <span className={`status-badge ${request.status.toLowerCase().replace(' ', '-')}`}>
-                {request.status}
+              <span className={`status-badge ${formatEnum(request.statut).toLowerCase().replace(' ', '-')}`}>
+                {formatEnum(request.statut)}
               </span>
             </div>
             <dl className="details-list">
-              <div><dt>Stock actuel</dt><dd>{request.currentStock}</dd></div>
-              <div><dt>Quantite demandee</dt><dd>{request.quantity}</dd></div>
-              <div><dt>Date</dt><dd>{request.date}</dd></div>
-              <div><dt>Motif</dt><dd>{request.reason}</dd></div>
+              <div><dt>Stock actuel</dt><dd>{stock?.quantite ?? 0}</dd></div>
+              <div><dt>Quantite demandee</dt><dd>{detail?.quantite ?? 0}</dd></div>
+              <div><dt>Date</dt><dd>{formatDate(request.dateDemande)}</dd></div>
+              <div><dt>Motif</dt><dd>{request.motif || '-'}</dd></div>
             </dl>
             {role === 'admin' && (
               <div className="action-row">
-                <button className="primary-button">Accepter</button>
+                <button className="primary-button" onClick={() => updateRequest(request, { statut: 'ACCEPTEE', motifRefus: null })} type="button">Accepter</button>
                 <button
                   className="danger-button"
                   onClick={() => setRefusingRequestId(refusingRequestId === request.id ? null : request.id)}
@@ -419,7 +332,11 @@ function RequestsPage({ role = 'admin' }) {
                     <button
                       className={selectedReasons[request.id] === reason ? 'selected' : ''}
                       key={reason}
-                      onClick={() => setSelectedReasons({ ...selectedReasons, [request.id]: reason })}
+                      onClick={() => {
+                        setSelectedReasons({ ...selectedReasons, [request.id]: reason });
+                        updateRequest(request, { statut: 'REFUSEE', motifRefus: reason });
+                        setRefusingRequestId(null);
+                      }}
                       type="button"
                     >
                       {reason}
@@ -428,14 +345,34 @@ function RequestsPage({ role = 'admin' }) {
                 </div>
               </div>
             )}
+            <div className="action-row three">
+              {detail && <button className="ghost-button" onClick={() => editDetail(request, detail)} type="button">Modifier detail</button>}
+              {detail
+                ? <button className="ghost-button" onClick={() => window.confirm('Supprimer ce detail ?') && mutate('requestDetails', 'DELETE', detail.id)} type="button">Supprimer detail</button>
+                : <button className="ghost-button" onClick={() => addDetail(request)} type="button">Ajouter detail</button>}
+              <button className="danger-button" onClick={() => window.confirm('Supprimer cette demande ?') && mutate('requests', 'DELETE', request.id)} type="button">Supprimer</button>
+            </div>
           </article>
-        ))}
+          );
+        })}
       </div>
     </>
   );
 }
 
 function MaintenancePage() {
+  const { maintenances, mutate } = useData();
+
+  function decide(ticket, decisionAdmin) {
+    const etatByDecision = { REPARER: 'EN_REPARATION', REMPLACER: 'REMPLACE', REFORMER: 'REFORME' };
+    return mutate('maintenances', 'PUT', ticket.id, {
+      ...ticket,
+      materiel: { id: ticket.materiel.id },
+      region: { id: ticket.region.id },
+      decisionAdmin,
+      etat: etatByDecision[decisionAdmin],
+    });
+  }
   return (
     <>
       <PageHeader
@@ -443,26 +380,27 @@ function MaintenancePage() {
         description="Traitement des pannes declarees par les regions: reparer, remplacer ou reformer."
       />
       <div className="workflow-grid">
-        {maintenanceTickets.map((ticket) => (
+        {maintenances.map((ticket) => (
           <article className="request-card maintenance-card" key={ticket.id}>
             <div className="request-card-header">
               <div>
                 <p className="eyebrow">Panne #{ticket.id}</p>
-                <h2>{ticket.material}</h2>
+                <h2>{ticket.materiel?.nom}</h2>
               </div>
-              <span className="status-badge panne">{ticket.state}</span>
+              <span className="status-badge panne">{formatEnum(ticket.etat)}</span>
             </div>
             <dl className="details-list">
-              <div><dt>Region</dt><dd>{ticket.region}</dd></div>
-              <div><dt>Quantite</dt><dd>{ticket.quantity}</dd></div>
-              <div><dt>Date</dt><dd>{ticket.date}</dd></div>
-              <div><dt>Statut</dt><dd>{ticket.status}</dd></div>
+              <div><dt>Region</dt><dd>{ticket.region?.nomRegion}</dd></div>
+              <div><dt>Quantite</dt><dd>{ticket.quantite}</dd></div>
+              <div><dt>Date</dt><dd>{formatDate(ticket.dateDeclaration)}</dd></div>
+              <div><dt>Statut</dt><dd>{formatEnum(ticket.decisionAdmin)}</dd></div>
             </dl>
             <div className="action-row three">
-              <button className="primary-button">Reparer</button>
-              <button className="secondary-button">Remplacer</button>
-              <button className="danger-button">Reformer</button>
+              <button className="primary-button" onClick={() => decide(ticket, 'REPARER')} type="button">Reparer</button>
+              <button className="secondary-button" onClick={() => decide(ticket, 'REMPLACER')} type="button">Remplacer</button>
+              <button className="danger-button" onClick={() => decide(ticket, 'REFORMER')} type="button">Reformer</button>
             </div>
+            <button className="ghost-button" onClick={() => window.confirm('Supprimer cette maintenance ?') && mutate('maintenances', 'DELETE', ticket.id)} type="button">Supprimer</button>
           </article>
         ))}
       </div>
@@ -471,138 +409,214 @@ function MaintenancePage() {
 }
 
 function RegionRequestPage() {
+  const { regions, materials, mutate } = useData();
+  const [form, setForm] = useState({ regionId: '', materialId: '', quantity: 1, reason: '' });
+
+  async function submit(event) {
+    event.preventDefault();
+    await mutate('requests', 'POST', null, {
+      region: { id: Number(form.regionId || regions[0]?.id) },
+      statut: 'EN_ATTENTE',
+      motif: form.reason,
+      details: [{ materiel: { id: Number(form.materialId || materials[0]?.id) }, quantite: Number(form.quantity) }],
+    });
+    setForm({ regionId: '', materialId: '', quantity: 1, reason: '' });
+  }
   return (
     <>
       <PageHeader
         title="Nouvelle Demande"
         description="Le responsable region cree une demande visible par l'admin."
       />
-      <section className="form-card">
+      <form className="form-card" onSubmit={submit}>
         <label>
           Region
-          <input defaultValue="Sfax" />
+          <select value={form.regionId} onChange={(event) => setForm({ ...form, regionId: event.target.value })} required>
+            <option value="">Choisir</option>
+            {regions.map((region) => <option key={region.id} value={region.id}>{region.nomRegion}</option>)}
+          </select>
         </label>
         <label>
           Materiel
-          <select defaultValue="Modem Huawei">
-            <option>Modem Huawei</option>
-            <option>Routeurs</option>
-            <option>Switchs</option>
-            <option>Telephones IP</option>
+          <select value={form.materialId} onChange={(event) => setForm({ ...form, materialId: event.target.value })} required>
+            <option value="">Choisir</option>
+            {materials.map((material) => <option key={material.id} value={material.id}>{material.nom}</option>)}
           </select>
         </label>
         <label>
           Quantite
-          <input type="number" defaultValue="50" />
+          <input min="1" type="number" value={form.quantity} onChange={(event) => setForm({ ...form, quantity: event.target.value })} />
         </label>
         <label className="full-field">
           Motif
-          <textarea defaultValue="Installation nouveaux clients" />
+          <textarea value={form.reason} onChange={(event) => setForm({ ...form, reason: event.target.value })} />
         </label>
-        <button className="primary-button">Envoyer la demande</button>
-      </section>
+        <button className="primary-button" type="submit">Envoyer la demande</button>
+      </form>
     </>
   );
 }
 
 function BreakdownDeclarationPage() {
+  const { regions, materials, mutate } = useData();
+  const [form, setForm] = useState({ regionId: '', materialId: '', quantity: 1, comment: '' });
+
+  async function submit(event) {
+    event.preventDefault();
+    await mutate('maintenances', 'POST', null, {
+      region: { id: Number(form.regionId) },
+      materiel: { id: Number(form.materialId) },
+      quantite: Number(form.quantity),
+      etat: 'DEFECTUEUX',
+      decisionAdmin: 'EN_ATTENTE',
+      commentaire: form.comment,
+    });
+    setForm({ regionId: '', materialId: '', quantity: 1, comment: '' });
+  }
   return (
     <>
       <PageHeader
         title="Declaration de Panne"
         description="La region declare les equipements defectueux pour decision administrative."
       />
-      <section className="form-card">
+      <form className="form-card" onSubmit={submit}>
         <label>
           Region
-          <input defaultValue="Sfax" />
+          <select value={form.regionId} onChange={(event) => setForm({ ...form, regionId: event.target.value })} required>
+            <option value="">Choisir</option>
+            {regions.map((region) => <option key={region.id} value={region.id}>{region.nomRegion}</option>)}
+          </select>
         </label>
         <label>
           Materiel
-          <select defaultValue="Switch Cisco">
-            <option>Switch Cisco</option>
-            <option>Modem Huawei</option>
-            <option>Imprimantes</option>
+          <select value={form.materialId} onChange={(event) => setForm({ ...form, materialId: event.target.value })} required>
+            <option value="">Choisir</option>
+            {materials.map((material) => <option key={material.id} value={material.id}>{material.nom}</option>)}
           </select>
         </label>
         <label>
           Quantite
-          <input type="number" defaultValue="3" />
+          <input min="1" type="number" value={form.quantity} onChange={(event) => setForm({ ...form, quantity: event.target.value })} />
         </label>
         <label>
-          Etat
-          <input defaultValue="Defectueux" />
+          Commentaire
+          <input value={form.comment} onChange={(event) => setForm({ ...form, comment: event.target.value })} />
         </label>
-        <button className="primary-button">Declarer la panne</button>
-      </section>
+        <button className="primary-button" type="submit">Declarer la panne</button>
+      </form>
     </>
   );
 }
 
 function RegionDashboard() {
+  const { regions, stocks, requests, movements, maintenances } = useData();
+  const region = regions[0];
+  const belongsToRegion = (item) => item?.region?.id === region?.id;
+  const regionStocks = stocks.filter(belongsToRegion);
+  const regionMovements = movements.filter(
+    (item) => item.regionSource?.id === region?.id || item.regionDestination?.id === region?.id,
+  );
   return (
     <>
       <PageHeader
         title="Dashboard Region"
-        description="Vue limitee aux donnees de la region connectee: Sfax."
+        description={`Vue limitee aux donnees de la region connectee: ${region?.nomRegion || '-'}.`}
       />
       <div className="stats-grid">
-        <StatCard label="Stock Sfax" value="10" tone="blue" />
-        <StatCard label="Demandes en attente" value="2" tone="orange" />
-        <StatCard label="Pannes declarees" value="3" tone="red" />
-        <StatCard label="Mouvements mois" value="18" tone="green" />
+        <StatCard label={`Stock ${region?.nomRegion || ''}`} value={regionStocks.reduce((sum, item) => sum + item.quantite, 0)} tone="blue" />
+        <StatCard label="Demandes en attente" value={requests.filter((item) => belongsToRegion(item) && item.statut === 'EN_ATTENTE').length} tone="orange" />
+        <StatCard label="Pannes declarees" value={maintenances.filter(belongsToRegion).length} tone="red" />
+        <StatCard label="Mouvements mois" value={regionMovements.length} tone="green" />
       </div>
     </>
   );
 }
 
 function TransferPanel() {
+  const { stocks, mutate } = useData();
+  const source = stocks[0];
+  const destination = stocks.find((item) => item.region?.id !== source?.region?.id && item.materiel?.id === source?.materiel?.id);
+
+  async function createTransfer() {
+    if (!source || !destination) return;
+    const quantity = ask('Quantite a transferer', 1);
+    if (quantity === null) return;
+    await mutate('movements', 'POST', null, {
+      materiel: { id: source.materiel.id },
+      quantite: Number(quantity),
+      typeMouvement: 'TRANSFERT_SORTANT',
+      regionSource: { id: source.region.id },
+      regionDestination: { id: destination.region.id },
+      commentaire: 'Transfert entre regions',
+    });
+  }
+
+  if (!source || !destination) return null;
   return (
     <section className="panel transfer-panel">
       <div className="panel-title">
         <h2>Transfert entre regions</h2>
-        <span>Exemple admin</span>
+        <span>Admin</span>
       </div>
       <div className="transfer-route">
         <div>
-          <span>{transferExample.from}</span>
-          <strong>{transferExample.fromStock} modems</strong>
+          <span>{source.region.nomRegion}</span>
+          <strong>{source.quantite} {source.materiel.nom}</strong>
         </div>
-        <span className="transfer-arrow">50</span>
+        <span className="transfer-arrow">→</span>
         <div>
-          <span>{transferExample.to}</span>
-          <strong>{transferExample.toStock} modems</strong>
+          <span>{destination.region.nomRegion}</span>
+          <strong>{destination.quantite} {destination.materiel.nom}</strong>
         </div>
       </div>
-      <p>Creation d'un transfert de {transferExample.quantity} {transferExample.material}: {transferExample.from} vers {transferExample.to}. Le mouvement est enregistre automatiquement.</p>
-      <button className="primary-button">Creer transfert</button>
+      <p>Creation d'un transfert de {source.materiel.nom}: {source.region.nomRegion} vers {destination.region.nomRegion}. Le mouvement est enregistre automatiquement.</p>
+      <button className="primary-button" onClick={createTransfer} type="button">Creer transfert</button>
     </section>
   );
 }
 
 function MaterialsPage() {
+  const { materials, stocks, mutate } = useData();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('Toutes');
   const [availability, setAvailability] = useState('Toutes');
 
-  const categories = ['Toutes', ...new Set(materials.map((item) => item.category))];
+  const materialRows = materials.map((item) => {
+    const relatedStocks = stocks.filter((stock) => stock.materiel?.id === item.id);
+    const quantity = relatedStocks.reduce((sum, stock) => sum + stock.quantite, 0);
+    const status = quantity === 0 ? 'Rupture' : relatedStocks.some((stock) => stock.quantite <= stock.seuilMinimum) ? 'Stock faible' : 'Disponible';
+    return { ...item, name: item.nom, category: item.categorie || '-', quantity, status };
+  });
+  const categories = ['Toutes', ...new Set(materialRows.map((item) => item.category))];
   const filtered = useMemo(
     () =>
-      materials.filter((item) => {
+      materialRows.filter((item) => {
         const matchesQuery = `${item.reference} ${item.name}`.toLowerCase().includes(query.toLowerCase());
         const matchesCategory = category === 'Toutes' || item.category === category;
         const matchesAvailability = availability === 'Toutes' || item.status === availability;
         return matchesQuery && matchesCategory && matchesAvailability;
       }),
-    [availability, category, query],
+    [availability, category, query, materialRows],
   );
+
+  async function saveMaterial(material) {
+    const reference = ask('Reference', material?.reference);
+    if (reference === null) return;
+    const nom = ask('Nom', material?.nom);
+    if (nom === null) return;
+    const categorie = ask('Categorie', material?.categorie);
+    if (categorie === null) return;
+    const description = ask('Description', material?.description);
+    if (description === null) return;
+    await mutate('materials', material ? 'PUT' : 'POST', material?.id, { reference, nom, categorie, description });
+  }
 
   return (
     <>
       <PageHeader
         title="Materiels"
         description="Catalogue des equipements: references, categories, quantites et disponibilite."
-        action={<button className="primary-button">+ Ajouter Materiel</button>}
+        action={<button className="primary-button" onClick={() => saveMaterial(null)} type="button">+ Ajouter Materiel</button>}
       />
       <div className="toolbar">
         <label>
@@ -637,7 +651,11 @@ function MaterialsPage() {
           <span className={`availability-badge ${item.status.toLowerCase().replace(' ', '-')}`} key={`${item.reference}-status`}>
             {item.status}
           </span>,
-          <button className="ghost-button" key={item.reference}>Voir</button>,
+          <CrudButtons
+            key={item.reference}
+            onEdit={() => saveMaterial(item)}
+            onDelete={() => window.confirm('Supprimer ce materiel ?') && mutate('materials', 'DELETE', item.id)}
+          />,
         ])}
       />
     </>
@@ -645,7 +663,24 @@ function MaterialsPage() {
 }
 
 function StockPage({ role = 'admin' }) {
-  const visibleStocks = role === 'region' ? stockRows.filter((row) => row.region === 'Sfax') : stockRows;
+  const { regions, materials, stocks, mutate } = useData();
+  const connectedRegion = regions[0];
+  const visibleStocks = role === 'region' ? stocks.filter((row) => row.region?.id === connectedRegion?.id) : stocks;
+
+  async function saveStock(stock) {
+    const regionId = ask('Identifiant region', stock?.region?.id || regions[0]?.id);
+    if (regionId === null) return;
+    const materialId = ask('Identifiant materiel', stock?.materiel?.id || materials[0]?.id);
+    if (materialId === null) return;
+    const quantite = ask('Quantite', stock?.quantite || 0);
+    if (quantite === null) return;
+    const seuilMinimum = ask('Seuil minimum', stock?.seuilMinimum || 0);
+    if (seuilMinimum === null) return;
+    await mutate('stocks', stock ? 'PUT' : 'POST', stock?.id, {
+      region: { id: Number(regionId) }, materiel: { id: Number(materialId) },
+      quantite: Number(quantite), seuilMinimum: Number(seuilMinimum),
+    });
+  }
 
   return (
     <>
@@ -653,9 +688,10 @@ function StockPage({ role = 'admin' }) {
         title={role === 'region' ? 'Mon Stock' : 'Stock Central'}
         description={
           role === 'region'
-            ? 'Stock disponible uniquement pour la region Sfax.'
+            ? `Stock disponible uniquement pour la region ${connectedRegion?.nomRegion || '-'}.`
             : 'Suivi prioritaire des disponibilites par region avec seuils minimums.'
         }
+        action={role === 'admin' ? <button className="primary-button" onClick={() => saveStock(null)} type="button">+ Ajouter Stock</button> : null}
       />
       <div className="status-strip">
         <span><i className="status-dot normal" /> Stock normal</span>
@@ -664,13 +700,14 @@ function StockPage({ role = 'admin' }) {
       </div>
       <div className="stock-table">
         <DataTable
-          columns={['Materiel', 'Region', 'Disponible', 'Reserve', 'Seuil Mini']}
+          columns={['Materiel', 'Region', 'Disponible', 'Etat', 'Seuil Mini', 'Action']}
           rows={visibleStocks.map((row) => [
-            row.material,
-            row.region,
-            <span className={`stock-pill ${getStockStatus(row)}`} key={`${row.material}-stock`}>{row.available}</span>,
-            row.reserved,
-            row.min,
+            row.materiel?.nom,
+            row.region?.nomRegion,
+            <span className={`stock-pill ${getStockStatus(row)}`} key={`${row.id}-stock`}>{row.quantite}</span>,
+            formatEnum(getStockStatus(row)),
+            row.seuilMinimum,
+            role === 'admin' ? <CrudButtons key={row.id} onEdit={() => saveStock(row)} onDelete={() => window.confirm('Supprimer ce stock ?') && mutate('stocks', 'DELETE', row.id)} /> : '-',
           ])}
         />
       </div>
@@ -680,24 +717,52 @@ function StockPage({ role = 'admin' }) {
 }
 
 function MovementsPage({ role = 'admin' }) {
-  const visibleMovements = role === 'region' ? movements.filter((item) => item.region === 'Sfax') : movements;
+  const { regions, materials, movements, mutate } = useData();
+  const connectedRegion = regions[0];
+  const visibleMovements = role === 'region'
+    ? movements.filter((item) => item.regionSource?.id === connectedRegion?.id || item.regionDestination?.id === connectedRegion?.id)
+    : movements;
   const columns =
     role === 'region'
       ? ['Date', 'Materiel', 'Quantite', 'Type', 'Provenance / Destination', 'Commentaire']
-      : ['Date', 'Region', 'Materiel', 'Quantite', 'Type', 'Provenance / Destination', 'Commentaire'];
+      : ['Date', 'Region', 'Materiel', 'Quantite', 'Type', 'Provenance / Destination', 'Commentaire', 'Action'];
+
+  async function saveMovement(item) {
+    const materialId = ask('Identifiant materiel', item?.materiel?.id || materials[0]?.id);
+    if (materialId === null) return;
+    const quantite = ask('Quantite', item?.quantite || 1);
+    if (quantite === null) return;
+    const typeMouvement = ask('Type (ENTREE, SORTIE, TRANSFERT_ENTRANT, TRANSFERT_SORTANT, RETOUR, PANNE)', item?.typeMouvement || 'ENTREE');
+    if (typeMouvement === null) return;
+    const sourceId = ask('Identifiant region source (vide si aucune)', item?.regionSource?.id || '');
+    if (sourceId === null) return;
+    const destinationId = ask('Identifiant region destination (vide si aucune)', item?.regionDestination?.id || '');
+    if (destinationId === null) return;
+    const commentaire = ask('Commentaire', item?.commentaire);
+    if (commentaire === null) return;
+    await mutate('movements', item ? 'PUT' : 'POST', item?.id, {
+      materiel: { id: Number(materialId) }, quantite: Number(quantite), typeMouvement,
+      regionSource: sourceId ? { id: Number(sourceId) } : null,
+      regionDestination: destinationId ? { id: Number(destinationId) } : null,
+      dateMouvement: item?.dateMouvement,
+      commentaire,
+    });
+  }
+
   const rows = visibleMovements.map((item) => {
+    const region = item.regionSource?.nomRegion || item.regionDestination?.nomRegion || '-';
     const commonCells = [
-      item.date,
-      item.material,
-      item.quantity,
-      <span className={`type-badge ${item.type.toLowerCase().replaceAll(' ', '-')}`} key={`${item.date}-${item.type}`}>
-        {item.type}
+      formatDate(item.dateMouvement),
+      item.materiel?.nom,
+      item.quantite,
+      <span className={`type-badge ${item.typeMouvement.toLowerCase().replaceAll('_', '-')}`} key={`${item.id}-${item.typeMouvement}`}>
+        {formatEnum(item.typeMouvement)}
       </span>,
-      item.provenanceDestination,
-      item.comment,
+      `${item.regionSource?.nomRegion || '-'} / ${item.regionDestination?.nomRegion || '-'}`,
+      item.commentaire || '-',
     ];
 
-    return role === 'region' ? commonCells : [item.date, item.region, ...commonCells.slice(1)];
+    return role === 'region' ? commonCells : [commonCells[0], region, ...commonCells.slice(1), <CrudButtons key={item.id} onEdit={() => saveMovement(item)} onDelete={() => window.confirm('Supprimer ce mouvement ?') && mutate('movements', 'DELETE', item.id)} />];
   });
 
   return (
@@ -709,6 +774,7 @@ function MovementsPage({ role = 'admin' }) {
             ? 'Historique des mouvements de stock de la region Sfax uniquement.'
             : 'Historique complet des entrees, sorties, transferts, retours et pannes.'
         }
+        action={role === 'admin' ? <button className="primary-button" onClick={() => saveMovement(null)} type="button">+ Ajouter Mouvement</button> : null}
       />
       <DataTable columns={columns} rows={rows} />
     </>
@@ -716,21 +782,33 @@ function MovementsPage({ role = 'admin' }) {
 }
 
 function RegionsPage() {
+  const { regions, stocks, requests, mutate } = useData();
+
+  async function saveRegion(region) {
+    const nomRegion = ask('Nom de la region', region?.nomRegion);
+    if (nomRegion === null) return;
+    const adresse = ask('Adresse', region?.adresse);
+    if (adresse === null) return;
+    await mutate('regions', region ? 'PUT' : 'POST', region?.id, { nomRegion, adresse });
+  }
+
   return (
     <>
       <PageHeader
         title="Regions"
         description="Pilotage des stocks, historiques et demandes par region Telecom."
+        action={<button className="primary-button" onClick={() => saveRegion(null)} type="button">+ Ajouter Region</button>}
       />
       <div className="regions-grid">
-        {regions.map((region, index) => (
-          <article className="region-card" key={region}>
+        {regions.map((region) => (
+          <article className="region-card" key={region.id}>
             <div>
-              <h2>{region}</h2>
-              <span>{index + 6} demandes</span>
+              <h2>{region.nomRegion}</h2>
+              <span>{requests.filter((request) => request.region?.id === region.id).length} demandes</span>
             </div>
-            <strong>{120 + index * 17}</strong>
-            <p>Stock actuel</p>
+            <strong>{stocks.filter((stock) => stock.region?.id === region.id).reduce((sum, stock) => sum + stock.quantite, 0)}</strong>
+            <p>Stock actuel · {region.adresse}</p>
+            <CrudButtons onEdit={() => saveRegion(region)} onDelete={() => window.confirm('Supprimer cette region ?') && mutate('regions', 'DELETE', region.id)} />
           </article>
         ))}
       </div>
@@ -739,16 +817,37 @@ function RegionsPage() {
 }
 
 function UsersPage() {
+  const { users, regions, mutate } = useData();
+
+  async function saveUser(user) {
+    const nom = ask('Nom', user?.nom);
+    if (nom === null) return;
+    const email = ask('Email', user?.email);
+    if (email === null) return;
+    const motDePasse = ask('Mot de passe', user?.motDePasse);
+    if (motDePasse === null) return;
+    const role = ask('Role (ADMIN ou RESPONSABLE_REGION)', user?.role || 'RESPONSABLE_REGION');
+    if (role === null) return;
+    const regionId = ask('Identifiant region (vide pour aucune)', user?.region?.id || regions[0]?.id || '');
+    if (regionId === null) return;
+    await mutate('users', user ? 'PUT' : 'POST', user?.id, {
+      nom, email, motDePasse, role, region: regionId ? { id: Number(regionId) } : null,
+    });
+  }
+
   return (
     <>
       <PageHeader
         title="Utilisateurs"
         description="Gestion des admins, responsables region et responsables stock."
-        action={<button className="primary-button">+ Ajouter Utilisateur</button>}
+        action={<button className="primary-button" onClick={() => saveUser(null)} type="button">+ Ajouter Utilisateur</button>}
       />
       <DataTable
-        columns={['Nom', 'Email', 'Region', 'Role']}
-        rows={users.map((item) => [item.name, item.email, item.region, item.role])}
+        columns={['Nom', 'Email', 'Region', 'Role', 'Action']}
+        rows={users.map((item) => [
+          item.nom, item.email, item.region?.nomRegion || '-', formatEnum(item.role),
+          <CrudButtons key={item.id} onEdit={() => saveUser(item)} onDelete={() => window.confirm('Supprimer cet utilisateur ?') && mutate('users', 'DELETE', item.id)} />,
+        ])}
       />
     </>
   );
@@ -846,6 +945,7 @@ function renderPage(activePage, role) {
 }
 
 function App() {
+  const apiData = useApiData();
   const [activePage, setActivePage] = useState('Dashboard');
   const [role, setRole] = useState('admin');
   const menuItems = role === 'admin' ? adminMenuItems : regionMenuItems;
@@ -856,6 +956,7 @@ function App() {
   }
 
   return (
+    <DataContext.Provider value={apiData}>
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand">
@@ -890,9 +991,11 @@ function App() {
         <button className="logout-button" type="button">Deconnexion</button>
       </aside>
       <main className="content">
+        {apiData.error && <div className="api-error">Impossible de synchroniser les donnees : {apiData.error}</div>}
         {renderPage(activePage, role)}
       </main>
     </div>
+    </DataContext.Provider>
   );
 }
 
