@@ -701,6 +701,20 @@ tr:last-child td {
   justify-self: start;
 }
 
+.form-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.danger-button {
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 7px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .transfer-panel {
   margin-top: 18px;
 }

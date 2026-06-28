@@ -45,10 +45,6 @@ function formatEnum(value = '') {
   return value.toLowerCase().replaceAll('_', ' ').replace(/^./, (letter) => letter.toUpperCase());
 }
 
-function ask(label, initialValue = '') {
-  return window.prompt(label, initialValue ?? '');
-}
-
 function useData() {
   return useContext(DataContext);
 }
@@ -99,6 +95,15 @@ function CrudButtons({ onEdit, onDelete }) {
     <div className="action-row">
       <button className="ghost-button" onClick={onEdit} type="button">Modifier</button>
       <button className="danger-button" onClick={onDelete} type="button">Supprimer</button>
+    </div>
+  );
+}
+
+function FormActions({ submitLabel = 'Enregistrer', onCancel }) {
+  return (
+    <div className="form-actions full-field">
+      <button className="primary-button" type="submit">{submitLabel}</button>
+      <button className="secondary-button" onClick={onCancel} type="button">Annuler</button>
     </div>
   );
 }
@@ -246,9 +251,11 @@ function Dashboard() {
 }
 
 function RequestsPage({ role = 'admin' }) {
-  const { regions, requests, stocks, mutate } = useData();
+  const { regions, materials, requests, stocks, mutate } = useData();
   const [refusingRequestId, setRefusingRequestId] = useState(null);
   const [selectedReasons, setSelectedReasons] = useState({});
+  const [editing, setEditing] = useState(undefined);
+  const [form, setForm] = useState({ regionId: '', materialId: '', quantity: 1, motif: '', statut: 'EN_ATTENTE' });
   const connectedRegion = regions[0];
   const visibleRequests = role === 'region'
     ? requests.filter((request) => request.region?.id === connectedRegion?.id)
@@ -258,25 +265,42 @@ function RequestsPage({ role = 'admin' }) {
     return mutate('requests', 'PUT', request.id, { ...request, ...changes });
   }
 
-  async function editDetail(request, detail) {
-    const quantity = ask('Quantite demandee', detail.quantite);
-    if (quantity === null) return;
-    await mutate('requestDetails', 'PUT', detail.id, {
-      ...detail,
-      demande: { id: request.id },
-      materiel: { id: detail.materiel.id },
-      quantite: Number(quantity),
-    });
+  function openForm(request = null) {
+    const detail = request?.details?.[0];
+    setEditing(request);
+    setForm(request ? {
+      regionId: String(request.region.id), materialId: detail?.materiel?.id ? String(detail.materiel.id) : '',
+      quantity: detail?.quantite ?? 1, motif: request.motif || '', statut: request.statut,
+    } : { regionId: '', materialId: '', quantity: 1, motif: '', statut: 'EN_ATTENTE' });
   }
 
-  async function addDetail(request) {
-    const materialId = ask('Identifiant materiel');
-    if (materialId === null) return;
-    const quantity = ask('Quantite demandee', 1);
-    if (quantity === null) return;
-    await mutate('requestDetails', 'POST', null, {
-      demande: { id: request.id }, materiel: { id: Number(materialId) }, quantite: Number(quantity),
-    });
+  async function saveRequest(event) {
+    event.preventDefault();
+    const existingDetail = editing?.details?.[0];
+    const payload = {
+      region: { id: Number(form.regionId) }, statut: form.statut, motif: form.motif,
+      motifRefus: editing?.motifRefus || null,
+      ...(editing?.dateDemande ? { dateDemande: editing.dateDemande } : {}),
+      details: [{ ...(existingDetail?.id ? { id: existingDetail.id } : {}), materiel: { id: Number(form.materialId) }, quantite: Number(form.quantity) }],
+    };
+    const success = await mutate('requests', editing ? 'PUT' : 'POST', editing?.id, payload);
+    if (success) setEditing(undefined);
+  }
+
+  if (editing !== undefined) {
+    return (
+      <>
+        <PageHeader title={editing ? 'Modifier une demande' : 'Ajouter une demande'} description="Saisie de la demande et de son detail materiel." />
+        <form className="form-card" onSubmit={saveRequest}>
+          <label>Region<select required value={form.regionId} onChange={(event) => setForm({ ...form, regionId: event.target.value })}><option value="">Selectionner</option>{regions.map((region) => <option key={region.id} value={region.id}>{region.nomRegion}</option>)}</select></label>
+          <label>Materiel<select required value={form.materialId} onChange={(event) => setForm({ ...form, materialId: event.target.value })}><option value="">Selectionner</option>{materials.map((material) => <option key={material.id} value={material.id}>{material.reference} - {material.nom}</option>)}</select></label>
+          <label>Quantite<input min="1" required type="number" value={form.quantity} onChange={(event) => setForm({ ...form, quantity: event.target.value })} /></label>
+          <label>Statut<select value={form.statut} onChange={(event) => setForm({ ...form, statut: event.target.value })}><option value="EN_ATTENTE">En attente</option><option value="ACCEPTEE">Acceptee</option><option value="REFUSEE">Refusee</option></select></label>
+          <label className="full-field">Motif<textarea required value={form.motif} onChange={(event) => setForm({ ...form, motif: event.target.value })} /></label>
+          <FormActions onCancel={() => setEditing(undefined)} />
+        </form>
+      </>
+    );
   }
 
   return (
@@ -288,6 +312,7 @@ function RequestsPage({ role = 'admin' }) {
             ? 'Suivi des demandes creees par la region Sfax.'
             : 'Module central pour traiter les demandes de materiel des regions.'
         }
+        action={<button className="primary-button" onClick={() => openForm(null)} type="button">+ Ajouter Demande</button>}
       />
       <div className="workflow-grid">
         {visibleRequests.map((request) => {
@@ -345,11 +370,8 @@ function RequestsPage({ role = 'admin' }) {
                 </div>
               </div>
             )}
-            <div className="action-row three">
-              {detail && <button className="ghost-button" onClick={() => editDetail(request, detail)} type="button">Modifier detail</button>}
-              {detail
-                ? <button className="ghost-button" onClick={() => window.confirm('Supprimer ce detail ?') && mutate('requestDetails', 'DELETE', detail.id)} type="button">Supprimer detail</button>
-                : <button className="ghost-button" onClick={() => addDetail(request)} type="button">Ajouter detail</button>}
+            <div className="action-row">
+              <button className="ghost-button" onClick={() => openForm(request)} type="button">Modifier</button>
               <button className="danger-button" onClick={() => window.confirm('Supprimer cette demande ?') && mutate('requests', 'DELETE', request.id)} type="button">Supprimer</button>
             </div>
           </article>
@@ -361,7 +383,9 @@ function RequestsPage({ role = 'admin' }) {
 }
 
 function MaintenancePage() {
-  const { maintenances, mutate } = useData();
+  const { maintenances, materials, regions, mutate } = useData();
+  const [editing, setEditing] = useState(undefined);
+  const [form, setForm] = useState({ materialId: '', regionId: '', quantite: 1, etat: 'DEFECTUEUX', decisionAdmin: 'EN_ATTENTE', commentaire: '' });
 
   function decide(ticket, decisionAdmin) {
     const etatByDecision = { REPARER: 'EN_REPARATION', REMPLACER: 'REMPLACE', REFORMER: 'REFORME' };
@@ -373,11 +397,49 @@ function MaintenancePage() {
       etat: etatByDecision[decisionAdmin],
     });
   }
+
+  function openForm(ticket = null) {
+    setEditing(ticket);
+    setForm(ticket ? {
+      materialId: String(ticket.materiel.id), regionId: String(ticket.region.id), quantite: ticket.quantite,
+      etat: ticket.etat, decisionAdmin: ticket.decisionAdmin, commentaire: ticket.commentaire || '',
+    } : { materialId: '', regionId: '', quantite: 1, etat: 'DEFECTUEUX', decisionAdmin: 'EN_ATTENTE', commentaire: '' });
+  }
+
+  async function saveMaintenance(event) {
+    event.preventDefault();
+    const payload = {
+      materiel: { id: Number(form.materialId) }, region: { id: Number(form.regionId) },
+      quantite: Number(form.quantite), etat: form.etat, decisionAdmin: form.decisionAdmin,
+      commentaire: form.commentaire,
+      ...(editing?.dateDeclaration ? { dateDeclaration: editing.dateDeclaration } : {}),
+    };
+    const success = await mutate('maintenances', editing ? 'PUT' : 'POST', editing?.id, payload);
+    if (success) setEditing(undefined);
+  }
+
+  if (editing !== undefined) {
+    return (
+      <>
+        <PageHeader title={editing ? 'Modifier une maintenance' : 'Ajouter une maintenance'} description="Declaration et suivi des equipements defectueux." />
+        <form className="form-card" onSubmit={saveMaintenance}>
+          <label>Materiel<select required value={form.materialId} onChange={(event) => setForm({ ...form, materialId: event.target.value })}><option value="">Selectionner</option>{materials.map((material) => <option key={material.id} value={material.id}>{material.nom}</option>)}</select></label>
+          <label>Region<select required value={form.regionId} onChange={(event) => setForm({ ...form, regionId: event.target.value })}><option value="">Selectionner</option>{regions.map((region) => <option key={region.id} value={region.id}>{region.nomRegion}</option>)}</select></label>
+          <label>Quantite<input min="1" required type="number" value={form.quantite} onChange={(event) => setForm({ ...form, quantite: event.target.value })} /></label>
+          <label>Etat<select value={form.etat} onChange={(event) => setForm({ ...form, etat: event.target.value })}><option value="DEFECTUEUX">Defectueux</option><option value="EN_REPARATION">En reparation</option><option value="REPARE">Repare</option><option value="REMPLACE">Remplace</option><option value="REFORME">Reforme</option></select></label>
+          <label>Decision<select value={form.decisionAdmin} onChange={(event) => setForm({ ...form, decisionAdmin: event.target.value })}><option value="EN_ATTENTE">En attente</option><option value="REPARER">Reparer</option><option value="REMPLACER">Remplacer</option><option value="REFORMER">Reformer</option></select></label>
+          <label className="full-field">Commentaire<textarea value={form.commentaire} onChange={(event) => setForm({ ...form, commentaire: event.target.value })} /></label>
+          <FormActions onCancel={() => setEditing(undefined)} />
+        </form>
+      </>
+    );
+  }
   return (
     <>
       <PageHeader
         title="Maintenance"
         description="Traitement des pannes declarees par les regions: reparer, remplacer ou reformer."
+        action={<button className="primary-button" onClick={() => openForm(null)} type="button">+ Ajouter Maintenance</button>}
       />
       <div className="workflow-grid">
         {maintenances.map((ticket) => (
@@ -400,7 +462,7 @@ function MaintenancePage() {
               <button className="secondary-button" onClick={() => decide(ticket, 'REMPLACER')} type="button">Remplacer</button>
               <button className="danger-button" onClick={() => decide(ticket, 'REFORMER')} type="button">Reformer</button>
             </div>
-            <button className="ghost-button" onClick={() => window.confirm('Supprimer cette maintenance ?') && mutate('maintenances', 'DELETE', ticket.id)} type="button">Supprimer</button>
+            <CrudButtons onEdit={() => openForm(ticket)} onDelete={() => window.confirm('Supprimer cette maintenance ?') && mutate('maintenances', 'DELETE', ticket.id)} />
           </article>
         ))}
       </div>
@@ -532,59 +594,19 @@ function RegionDashboard() {
   );
 }
 
-function TransferPanel() {
-  const { stocks, mutate } = useData();
-  const source = stocks[0];
-  const destination = stocks.find((item) => item.region?.id !== source?.region?.id && item.materiel?.id === source?.materiel?.id);
-
-  async function createTransfer() {
-    if (!source || !destination) return;
-    const quantity = ask('Quantite a transferer', 1);
-    if (quantity === null) return;
-    await mutate('movements', 'POST', null, {
-      materiel: { id: source.materiel.id },
-      quantite: Number(quantity),
-      typeMouvement: 'TRANSFERT_SORTANT',
-      regionSource: { id: source.region.id },
-      regionDestination: { id: destination.region.id },
-      commentaire: 'Transfert entre regions',
-    });
-  }
-
-  if (!source || !destination) return null;
-  return (
-    <section className="panel transfer-panel">
-      <div className="panel-title">
-        <h2>Transfert entre regions</h2>
-        <span>Admin</span>
-      </div>
-      <div className="transfer-route">
-        <div>
-          <span>{source.region.nomRegion}</span>
-          <strong>{source.quantite} {source.materiel.nom}</strong>
-        </div>
-        <span className="transfer-arrow">→</span>
-        <div>
-          <span>{destination.region.nomRegion}</span>
-          <strong>{destination.quantite} {destination.materiel.nom}</strong>
-        </div>
-      </div>
-      <p>Creation d'un transfert de {source.materiel.nom}: {source.region.nomRegion} vers {destination.region.nomRegion}. Le mouvement est enregistre automatiquement.</p>
-      <button className="primary-button" onClick={createTransfer} type="button">Creer transfert</button>
-    </section>
-  );
-}
-
 function MaterialsPage() {
-  const { materials, stocks, mutate } = useData();
+  const { materials, regions, stocks, mutate } = useData();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('Toutes');
   const [availability, setAvailability] = useState('Toutes');
+  const [editing, setEditing] = useState(undefined);
+  const [form, setForm] = useState({ reference: '', nom: '', categorie: '', description: '' });
 
+  const centralRegion = regions.find((region) => region.nomRegion?.toLowerCase() === 'stock central');
   const materialRows = materials.map((item) => {
-    const relatedStocks = stocks.filter((stock) => stock.materiel?.id === item.id);
-    const quantity = relatedStocks.reduce((sum, stock) => sum + stock.quantite, 0);
-    const status = quantity === 0 ? 'Rupture' : relatedStocks.some((stock) => stock.quantite <= stock.seuilMinimum) ? 'Stock faible' : 'Disponible';
+    const centralStock = stocks.find((stock) => stock.region?.id === centralRegion?.id && stock.materiel?.id === item.id);
+    const quantity = centralStock?.quantite ?? 0;
+    const status = quantity === 0 ? 'Rupture' : quantity <= (centralStock?.seuilMinimum ?? 0) ? 'Stock faible' : 'Disponible';
     return { ...item, name: item.nom, category: item.categorie || '-', quantity, status };
   });
   const categories = ['Toutes', ...new Set(materialRows.map((item) => item.category))];
@@ -599,24 +621,40 @@ function MaterialsPage() {
     [availability, category, query, materialRows],
   );
 
-  async function saveMaterial(material) {
-    const reference = ask('Reference', material?.reference);
-    if (reference === null) return;
-    const nom = ask('Nom', material?.nom);
-    if (nom === null) return;
-    const categorie = ask('Categorie', material?.categorie);
-    if (categorie === null) return;
-    const description = ask('Description', material?.description);
-    if (description === null) return;
-    await mutate('materials', material ? 'PUT' : 'POST', material?.id, { reference, nom, categorie, description });
+  function openForm(material = null) {
+    setEditing(material);
+    setForm(material
+      ? { reference: material.reference, nom: material.nom, categorie: material.categorie || '', description: material.description || '' }
+      : { reference: '', nom: '', categorie: '', description: '' });
+  }
+
+  async function saveMaterial(event) {
+    event.preventDefault();
+    const success = await mutate('materials', editing ? 'PUT' : 'POST', editing?.id, form);
+    if (success) setEditing(undefined);
+  }
+
+  if (editing !== undefined) {
+    return (
+      <>
+        <PageHeader title={editing ? 'Modifier un materiel' : 'Ajouter un materiel'} description="Renseignez les informations du catalogue equipement." />
+        <form className="form-card" onSubmit={saveMaterial}>
+          <label>Reference<input required value={form.reference} onChange={(event) => setForm({ ...form, reference: event.target.value })} /></label>
+          <label>Nom<input required value={form.nom} onChange={(event) => setForm({ ...form, nom: event.target.value })} /></label>
+          <label>Categorie<input required value={form.categorie} onChange={(event) => setForm({ ...form, categorie: event.target.value })} /></label>
+          <label className="full-field">Description<textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /></label>
+          <FormActions onCancel={() => setEditing(undefined)} />
+        </form>
+      </>
+    );
   }
 
   return (
     <>
       <PageHeader
         title="Materiels"
-        description="Catalogue des equipements: references, categories, quantites et disponibilite."
-        action={<button className="primary-button" onClick={() => saveMaterial(null)} type="button">+ Ajouter Materiel</button>}
+        description="Catalogue des equipements et disponibilite en lecture seule du Stock Central."
+        action={<button className="primary-button" onClick={() => openForm(null)} type="button">+ Ajouter Materiel</button>}
       />
       <div className="toolbar">
         <label>
@@ -653,7 +691,7 @@ function MaterialsPage() {
           </span>,
           <CrudButtons
             key={item.reference}
-            onEdit={() => saveMaterial(item)}
+            onEdit={() => openForm(item)}
             onDelete={() => window.confirm('Supprimer ce materiel ?') && mutate('materials', 'DELETE', item.id)}
           />,
         ])}
@@ -665,21 +703,69 @@ function MaterialsPage() {
 function StockPage({ role = 'admin' }) {
   const { regions, materials, stocks, mutate } = useData();
   const connectedRegion = regions[0];
-  const visibleStocks = role === 'region' ? stocks.filter((row) => row.region?.id === connectedRegion?.id) : stocks;
+  const centralRegion = regions.find((region) => region.nomRegion?.toLowerCase() === 'stock central');
+  const visibleStocks = role === 'region'
+    ? stocks.filter((row) => row.region?.id === connectedRegion?.id)
+    : stocks.filter((row) => row.region?.id === centralRegion?.id);
+  const [formMode, setFormMode] = useState(null);
+  const [editingStock, setEditingStock] = useState(null);
+  const [form, setForm] = useState({ materialId: '', received: 1, seuilMinimum: 0 });
 
-  async function saveStock(stock) {
-    const regionId = ask('Identifiant region', stock?.region?.id || regions[0]?.id);
-    if (regionId === null) return;
-    const materialId = ask('Identifiant materiel', stock?.materiel?.id || materials[0]?.id);
-    if (materialId === null) return;
-    const quantite = ask('Quantite', stock?.quantite || 0);
-    if (quantite === null) return;
-    const seuilMinimum = ask('Seuil minimum', stock?.seuilMinimum || 0);
-    if (seuilMinimum === null) return;
-    await mutate('stocks', stock ? 'PUT' : 'POST', stock?.id, {
-      region: { id: Number(regionId) }, materiel: { id: Number(materialId) },
-      quantite: Number(quantite), seuilMinimum: Number(seuilMinimum),
-    });
+  function openReception() {
+    setEditingStock(null);
+    setForm({ materialId: '', received: 1, seuilMinimum: 0 });
+    setFormMode('receive');
+  }
+
+  function openThreshold(stock) {
+    setEditingStock(stock);
+    setForm({ materialId: String(stock.materiel.id), received: 0, seuilMinimum: stock.seuilMinimum });
+    setFormMode('threshold');
+  }
+
+  async function saveStock(event) {
+    event.preventDefault();
+    let success;
+    if (formMode === 'threshold') {
+      success = await mutate('stocks', 'PUT', editingStock.id, {
+        region: { id: editingStock.region.id }, materiel: { id: editingStock.materiel.id },
+        quantite: editingStock.quantite, seuilMinimum: Number(form.seuilMinimum),
+      });
+    } else {
+      const existing = stocks.find(
+        (stock) => stock.region?.id === centralRegion?.id && stock.materiel?.id === Number(form.materialId),
+      );
+      const payload = {
+        region: { id: centralRegion.id }, materiel: { id: Number(form.materialId) },
+        quantite: (existing?.quantite ?? 0) + Number(form.received),
+        seuilMinimum: existing?.seuilMinimum ?? Number(form.seuilMinimum),
+      };
+      success = await mutate('stocks', existing ? 'PUT' : 'POST', existing?.id, payload);
+    }
+    if (success) setFormMode(null);
+  }
+
+  if (role === 'admin' && formMode) {
+    return (
+      <>
+        <PageHeader
+          title={formMode === 'receive' ? 'Ajouter une livraison' : 'Modifier le seuil minimum'}
+          description="Les quantites sont gerees exclusivement dans le Stock Central."
+        />
+        <form className="form-card" onSubmit={saveStock}>
+          <label>
+            Materiel
+            <select disabled={formMode === 'threshold'} required value={form.materialId} onChange={(event) => setForm({ ...form, materialId: event.target.value })}>
+              <option value="">Selectionner un materiel</option>
+              {materials.map((material) => <option key={material.id} value={material.id}>{material.reference} - {material.nom}</option>)}
+            </select>
+          </label>
+          {formMode === 'receive' && <label>Quantite recue<input min="1" required type="number" value={form.received} onChange={(event) => setForm({ ...form, received: event.target.value })} /></label>}
+          <label>Seuil minimum<input min="0" required type="number" value={form.seuilMinimum} onChange={(event) => setForm({ ...form, seuilMinimum: event.target.value })} /></label>
+          <FormActions onCancel={() => setFormMode(null)} />
+        </form>
+      </>
+    );
   }
 
   return (
@@ -689,9 +775,9 @@ function StockPage({ role = 'admin' }) {
         description={
           role === 'region'
             ? `Stock disponible uniquement pour la region ${connectedRegion?.nomRegion || '-'}.`
-            : 'Suivi prioritaire des disponibilites par region avec seuils minimums.'
+            : 'Reception des livraisons et gestion des quantites du Stock Central.'
         }
-        action={role === 'admin' ? <button className="primary-button" onClick={() => saveStock(null)} type="button">+ Ajouter Stock</button> : null}
+        action={role === 'admin' ? <button className="primary-button" onClick={openReception} type="button">+ Ajouter Livraison</button> : null}
       />
       <div className="status-strip">
         <span><i className="status-dot normal" /> Stock normal</span>
@@ -707,17 +793,18 @@ function StockPage({ role = 'admin' }) {
             <span className={`stock-pill ${getStockStatus(row)}`} key={`${row.id}-stock`}>{row.quantite}</span>,
             formatEnum(getStockStatus(row)),
             row.seuilMinimum,
-            role === 'admin' ? <CrudButtons key={row.id} onEdit={() => saveStock(row)} onDelete={() => window.confirm('Supprimer ce stock ?') && mutate('stocks', 'DELETE', row.id)} /> : '-',
+            role === 'admin' ? <CrudButtons key={row.id} onEdit={() => openThreshold(row)} onDelete={() => window.confirm('Supprimer ce stock ?') && mutate('stocks', 'DELETE', row.id)} /> : '-',
           ])}
         />
       </div>
-      {role === 'admin' && <TransferPanel />}
     </>
   );
 }
 
 function MovementsPage({ role = 'admin' }) {
   const { regions, materials, movements, mutate } = useData();
+  const [editing, setEditing] = useState(undefined);
+  const [form, setForm] = useState({ materialId: '', quantite: 1, typeMouvement: 'ENTREE', sourceId: '', destinationId: '', commentaire: '' });
   const connectedRegion = regions[0];
   const visibleMovements = role === 'region'
     ? movements.filter((item) => item.regionSource?.id === connectedRegion?.id || item.regionDestination?.id === connectedRegion?.id)
@@ -727,26 +814,44 @@ function MovementsPage({ role = 'admin' }) {
       ? ['Date', 'Materiel', 'Quantite', 'Type', 'Provenance / Destination', 'Commentaire']
       : ['Date', 'Region', 'Materiel', 'Quantite', 'Type', 'Provenance / Destination', 'Commentaire', 'Action'];
 
-  async function saveMovement(item) {
-    const materialId = ask('Identifiant materiel', item?.materiel?.id || materials[0]?.id);
-    if (materialId === null) return;
-    const quantite = ask('Quantite', item?.quantite || 1);
-    if (quantite === null) return;
-    const typeMouvement = ask('Type (ENTREE, SORTIE, TRANSFERT_ENTRANT, TRANSFERT_SORTANT, RETOUR, PANNE)', item?.typeMouvement || 'ENTREE');
-    if (typeMouvement === null) return;
-    const sourceId = ask('Identifiant region source (vide si aucune)', item?.regionSource?.id || '');
-    if (sourceId === null) return;
-    const destinationId = ask('Identifiant region destination (vide si aucune)', item?.regionDestination?.id || '');
-    if (destinationId === null) return;
-    const commentaire = ask('Commentaire', item?.commentaire);
-    if (commentaire === null) return;
-    await mutate('movements', item ? 'PUT' : 'POST', item?.id, {
-      materiel: { id: Number(materialId) }, quantite: Number(quantite), typeMouvement,
-      regionSource: sourceId ? { id: Number(sourceId) } : null,
-      regionDestination: destinationId ? { id: Number(destinationId) } : null,
-      dateMouvement: item?.dateMouvement,
-      commentaire,
-    });
+  function openForm(item = null) {
+    setEditing(item);
+    setForm(item ? {
+      materialId: String(item.materiel.id), quantite: item.quantite, typeMouvement: item.typeMouvement,
+      sourceId: item.regionSource?.id ? String(item.regionSource.id) : '',
+      destinationId: item.regionDestination?.id ? String(item.regionDestination.id) : '',
+      commentaire: item.commentaire || '',
+    } : { materialId: '', quantite: 1, typeMouvement: 'ENTREE', sourceId: '', destinationId: '', commentaire: '' });
+  }
+
+  async function saveMovement(event) {
+    event.preventDefault();
+    const payload = {
+      materiel: { id: Number(form.materialId) }, quantite: Number(form.quantite), typeMouvement: form.typeMouvement,
+      regionSource: form.sourceId ? { id: Number(form.sourceId) } : null,
+      regionDestination: form.destinationId ? { id: Number(form.destinationId) } : null,
+      commentaire: form.commentaire,
+      ...(editing?.dateMouvement ? { dateMouvement: editing.dateMouvement } : {}),
+    };
+    const success = await mutate('movements', editing ? 'PUT' : 'POST', editing?.id, payload);
+    if (success) setEditing(undefined);
+  }
+
+  if (role === 'admin' && editing !== undefined) {
+    return (
+      <>
+        <PageHeader title={editing ? 'Modifier un mouvement' : 'Ajouter un mouvement'} description="Enregistrement des entrees, sorties et transferts de stock." />
+        <form className="form-card" onSubmit={saveMovement}>
+          <label>Materiel<select required value={form.materialId} onChange={(event) => setForm({ ...form, materialId: event.target.value })}><option value="">Selectionner</option>{materials.map((material) => <option key={material.id} value={material.id}>{material.nom}</option>)}</select></label>
+          <label>Quantite<input min="1" required type="number" value={form.quantite} onChange={(event) => setForm({ ...form, quantite: event.target.value })} /></label>
+          <label>Type<select value={form.typeMouvement} onChange={(event) => setForm({ ...form, typeMouvement: event.target.value })}>{['ENTREE', 'SORTIE', 'TRANSFERT_ENTRANT', 'TRANSFERT_SORTANT', 'RETOUR', 'PANNE'].map((type) => <option key={type} value={type}>{formatEnum(type)}</option>)}</select></label>
+          <label>Region source<select value={form.sourceId} onChange={(event) => setForm({ ...form, sourceId: event.target.value })}><option value="">Aucune</option>{regions.map((region) => <option key={region.id} value={region.id}>{region.nomRegion}</option>)}</select></label>
+          <label>Region destination<select value={form.destinationId} onChange={(event) => setForm({ ...form, destinationId: event.target.value })}><option value="">Aucune</option>{regions.map((region) => <option key={region.id} value={region.id}>{region.nomRegion}</option>)}</select></label>
+          <label className="full-field">Commentaire<textarea value={form.commentaire} onChange={(event) => setForm({ ...form, commentaire: event.target.value })} /></label>
+          <FormActions onCancel={() => setEditing(undefined)} />
+        </form>
+      </>
+    );
   }
 
   const rows = visibleMovements.map((item) => {
@@ -762,7 +867,7 @@ function MovementsPage({ role = 'admin' }) {
       item.commentaire || '-',
     ];
 
-    return role === 'region' ? commonCells : [commonCells[0], region, ...commonCells.slice(1), <CrudButtons key={item.id} onEdit={() => saveMovement(item)} onDelete={() => window.confirm('Supprimer ce mouvement ?') && mutate('movements', 'DELETE', item.id)} />];
+    return role === 'region' ? commonCells : [commonCells[0], region, ...commonCells.slice(1), <CrudButtons key={item.id} onEdit={() => openForm(item)} onDelete={() => window.confirm('Supprimer ce mouvement ?') && mutate('movements', 'DELETE', item.id)} />];
   });
 
   return (
@@ -774,7 +879,7 @@ function MovementsPage({ role = 'admin' }) {
             ? 'Historique des mouvements de stock de la region Sfax uniquement.'
             : 'Historique complet des entrees, sorties, transferts, retours et pannes.'
         }
-        action={role === 'admin' ? <button className="primary-button" onClick={() => saveMovement(null)} type="button">+ Ajouter Mouvement</button> : null}
+        action={role === 'admin' ? <button className="primary-button" onClick={() => openForm(null)} type="button">+ Ajouter Mouvement</button> : null}
       />
       <DataTable columns={columns} rows={rows} />
     </>
@@ -783,13 +888,31 @@ function MovementsPage({ role = 'admin' }) {
 
 function RegionsPage() {
   const { regions, stocks, requests, mutate } = useData();
+  const [editing, setEditing] = useState(undefined);
+  const [form, setForm] = useState({ nomRegion: '', adresse: '' });
 
-  async function saveRegion(region) {
-    const nomRegion = ask('Nom de la region', region?.nomRegion);
-    if (nomRegion === null) return;
-    const adresse = ask('Adresse', region?.adresse);
-    if (adresse === null) return;
-    await mutate('regions', region ? 'PUT' : 'POST', region?.id, { nomRegion, adresse });
+  function openForm(region = null) {
+    setEditing(region);
+    setForm(region ? { nomRegion: region.nomRegion, adresse: region.adresse || '' } : { nomRegion: '', adresse: '' });
+  }
+
+  async function saveRegion(event) {
+    event.preventDefault();
+    const success = await mutate('regions', editing ? 'PUT' : 'POST', editing?.id, form);
+    if (success) setEditing(undefined);
+  }
+
+  if (editing !== undefined) {
+    return (
+      <>
+        <PageHeader title={editing ? 'Modifier une region' : 'Ajouter une region'} description="Gestion du referentiel des regions Telecom." />
+        <form className="form-card" onSubmit={saveRegion}>
+          <label>Nom de la region<input required value={form.nomRegion} onChange={(event) => setForm({ ...form, nomRegion: event.target.value })} /></label>
+          <label>Adresse<input required value={form.adresse} onChange={(event) => setForm({ ...form, adresse: event.target.value })} /></label>
+          <FormActions onCancel={() => setEditing(undefined)} />
+        </form>
+      </>
+    );
   }
 
   return (
@@ -797,7 +920,7 @@ function RegionsPage() {
       <PageHeader
         title="Regions"
         description="Pilotage des stocks, historiques et demandes par region Telecom."
-        action={<button className="primary-button" onClick={() => saveRegion(null)} type="button">+ Ajouter Region</button>}
+        action={<button className="primary-button" onClick={() => openForm(null)} type="button">+ Ajouter Region</button>}
       />
       <div className="regions-grid">
         {regions.map((region) => (
@@ -808,7 +931,7 @@ function RegionsPage() {
             </div>
             <strong>{stocks.filter((stock) => stock.region?.id === region.id).reduce((sum, stock) => sum + stock.quantite, 0)}</strong>
             <p>Stock actuel · {region.adresse}</p>
-            <CrudButtons onEdit={() => saveRegion(region)} onDelete={() => window.confirm('Supprimer cette region ?') && mutate('regions', 'DELETE', region.id)} />
+            <CrudButtons onEdit={() => openForm(region)} onDelete={() => window.confirm('Supprimer cette region ?') && mutate('regions', 'DELETE', region.id)} />
           </article>
         ))}
       </div>
@@ -818,21 +941,42 @@ function RegionsPage() {
 
 function UsersPage() {
   const { users, regions, mutate } = useData();
+  const emptyForm = { nom: '', email: '', motDePasse: '', role: 'RESPONSABLE_REGION', regionId: '' };
+  const [editing, setEditing] = useState(undefined);
+  const [form, setForm] = useState(emptyForm);
 
-  async function saveUser(user) {
-    const nom = ask('Nom', user?.nom);
-    if (nom === null) return;
-    const email = ask('Email', user?.email);
-    if (email === null) return;
-    const motDePasse = ask('Mot de passe', user?.motDePasse);
-    if (motDePasse === null) return;
-    const role = ask('Role (ADMIN ou RESPONSABLE_REGION)', user?.role || 'RESPONSABLE_REGION');
-    if (role === null) return;
-    const regionId = ask('Identifiant region (vide pour aucune)', user?.region?.id || regions[0]?.id || '');
-    if (regionId === null) return;
-    await mutate('users', user ? 'PUT' : 'POST', user?.id, {
-      nom, email, motDePasse, role, region: regionId ? { id: Number(regionId) } : null,
-    });
+  function openForm(user = null) {
+    setEditing(user);
+    setForm(user ? {
+      nom: user.nom, email: user.email, motDePasse: user.motDePasse,
+      role: user.role, regionId: user.region?.id ? String(user.region.id) : '',
+    } : emptyForm);
+  }
+
+  async function saveUser(event) {
+    event.preventDefault();
+    const payload = {
+      nom: form.nom, email: form.email, motDePasse: form.motDePasse, role: form.role,
+      region: form.regionId ? { id: Number(form.regionId) } : null,
+    };
+    const success = await mutate('users', editing ? 'PUT' : 'POST', editing?.id, payload);
+    if (success) setEditing(undefined);
+  }
+
+  if (editing !== undefined) {
+    return (
+      <>
+        <PageHeader title={editing ? 'Modifier un utilisateur' : 'Ajouter un utilisateur'} description="Gestion des acces et des responsabilites regionales." />
+        <form className="form-card" onSubmit={saveUser}>
+          <label>Nom<input required value={form.nom} onChange={(event) => setForm({ ...form, nom: event.target.value })} /></label>
+          <label>Email<input required type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></label>
+          <label>Mot de passe<input required type="password" value={form.motDePasse} onChange={(event) => setForm({ ...form, motDePasse: event.target.value })} /></label>
+          <label>Role<select value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value })}><option value="ADMIN">Admin</option><option value="RESPONSABLE_REGION">Responsable region</option></select></label>
+          <label>Region<select value={form.regionId} onChange={(event) => setForm({ ...form, regionId: event.target.value })}><option value="">Aucune</option>{regions.map((region) => <option key={region.id} value={region.id}>{region.nomRegion}</option>)}</select></label>
+          <FormActions onCancel={() => setEditing(undefined)} />
+        </form>
+      </>
+    );
   }
 
   return (
@@ -840,13 +984,13 @@ function UsersPage() {
       <PageHeader
         title="Utilisateurs"
         description="Gestion des admins, responsables region et responsables stock."
-        action={<button className="primary-button" onClick={() => saveUser(null)} type="button">+ Ajouter Utilisateur</button>}
+        action={<button className="primary-button" onClick={() => openForm(null)} type="button">+ Ajouter Utilisateur</button>}
       />
       <DataTable
         columns={['Nom', 'Email', 'Region', 'Role', 'Action']}
         rows={users.map((item) => [
           item.nom, item.email, item.region?.nomRegion || '-', formatEnum(item.role),
-          <CrudButtons key={item.id} onEdit={() => saveUser(item)} onDelete={() => window.confirm('Supprimer cet utilisateur ?') && mutate('users', 'DELETE', item.id)} />,
+          <CrudButtons key={item.id} onEdit={() => openForm(item)} onDelete={() => window.confirm('Supprimer cet utilisateur ?') && mutate('users', 'DELETE', item.id)} />,
         ])}
       />
     </>
