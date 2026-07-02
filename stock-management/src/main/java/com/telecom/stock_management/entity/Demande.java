@@ -45,6 +45,14 @@ public class Demande {
     @Column(name = "motif_refus", columnDefinition = "TEXT")
     private String motifRefus;
 
+    @Column(name = "date_traitement")
+    private LocalDateTime dateTraitement;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "traite_par_id")
+    @JsonIgnoreProperties({"motDePasse", "region", "hibernateLazyInitializer", "handler"})
+    private User traitePar;
+
     @OneToMany(mappedBy = "demande", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnoreProperties({"demande", "hibernateLazyInitializer", "handler"})
     private List<DemandeDetail> details = new ArrayList<>();
@@ -99,6 +107,14 @@ public class Demande {
     public void setMotifRefus(String motifRefus) {
         this.motifRefus = motifRefus;
     }
+
+    public LocalDateTime getDateTraitement() { return dateTraitement; }
+
+    public void setDateTraitement(LocalDateTime dateTraitement) { this.dateTraitement = dateTraitement; }
+
+    public User getTraitePar() { return traitePar; }
+
+    public void setTraitePar(User traitePar) { this.traitePar = traitePar; }
 
     public List<DemandeDetail> getDetails() {
         return details;

@@ -18,7 +18,14 @@ async function request(path, options = {}) {
   });
 
   if (!response.ok) {
-    const message = await response.text();
+    const body = await response.text();
+    let message = body;
+    try {
+      const problem = JSON.parse(body);
+      message = problem.detail || problem.message || body;
+    } catch {
+      // La reponse n'est pas du JSON : conserver son texte.
+    }
     throw new Error(message || `Erreur HTTP ${response.status}`);
   }
 
@@ -39,4 +46,8 @@ export function updateItem(endpoint, id, item) {
 
 export function deleteItem(endpoint, id) {
   return request(`${endpoint}/${id}`, { method: 'DELETE' });
+}
+
+export function postAction(endpoint, id, action, payload) {
+  return request(`${endpoint}/${id}/${action}`, { method: 'POST', body: JSON.stringify(payload) });
 }

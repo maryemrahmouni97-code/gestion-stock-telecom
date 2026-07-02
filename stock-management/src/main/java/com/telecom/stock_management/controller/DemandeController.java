@@ -4,7 +4,9 @@ import com.telecom.stock_management.entity.Demande;
 import com.telecom.stock_management.enums.DemandeStatus;
 import com.telecom.stock_management.service.DemandeService;
 import java.util.List;
+import java.util.Map;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,6 +23,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/demandes")
 @CrossOrigin(origins = "http://localhost:5174")
 public class DemandeController {
+
+    public record DecisionRequest(Long utilisateurId, String motif) {}
 
     private final DemandeService demandeService;
 
@@ -56,5 +60,22 @@ public class DemandeController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id) {
         demandeService.delete(id);
+    }
+
+    @PostMapping("/{id}/accepter")
+    public ResponseEntity<Map<String, Object>> accepter(@PathVariable Long id,
+            @RequestBody(required = false) DecisionRequest decision) {
+        Long utilisateurId = decision == null ? null : decision.utilisateurId();
+        Demande demande = demandeService.accepter(id, utilisateurId);
+        return ResponseEntity.ok(Map.of(
+                "message", "Demande acceptee avec succes",
+                "demande", demande));
+    }
+
+    @PostMapping("/{id}/refuser")
+    public Demande refuser(@PathVariable Long id, @RequestBody(required = false) DecisionRequest decision) {
+        String motif = decision == null ? null : decision.motif();
+        Long utilisateurId = decision == null ? null : decision.utilisateurId();
+        return demandeService.refuser(id, motif, utilisateurId);
     }
 }

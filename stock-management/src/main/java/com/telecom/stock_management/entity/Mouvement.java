@@ -49,6 +49,10 @@ public class Mouvement {
     @Column(columnDefinition = "TEXT")
     private String commentaire;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "utilisateur_id")
+    private User utilisateur;
+
     public Mouvement() {
     }
 
@@ -115,4 +119,8 @@ public class Mouvement {
     public void setCommentaire(String commentaire) {
         this.commentaire = commentaire;
     }
+
+    public User getUtilisateur() { return utilisateur; }
+
+    public void setUtilisateur(User utilisateur) { this.utilisateur = utilisateur; }
 }

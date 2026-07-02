@@ -1,12 +1,13 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import './App.css';
-import { createItem, deleteItem, endpoints, getAll, updateItem } from './api';
+import { createItem, deleteItem, endpoints, getAll, postAction, updateItem } from './api';
 
 const adminMenuItems = [
   'Dashboard',
   'Materiels',
   'Stock Central',
   'Demandes',
+  'Historique Demandes',
   'Mouvements',
   'Regions',
   'Utilisateurs',
@@ -87,7 +88,19 @@ function useApiData() {
     }
   }
 
-  return { ...data, error, mutate, refresh };
+  async function decideRequest(id, action, payload) {
+    try {
+      await postAction(endpoints.requests, id, action, payload);
+      await refresh();
+      setError('');
+      return { success: true };
+    } catch (requestError) {
+      setError(requestError.message);
+      return { success: false, message: requestError.message };
+    }
+  }
+
+  return { ...data, error, mutate, refresh, decideRequest };
 }
 
 function CrudButtons({ onEdit, onDelete }) {
@@ -97,6 +110,10 @@ function CrudButtons({ onEdit, onDelete }) {
       <button className="danger-button" onClick={onDelete} type="button">Supprimer</button>
     </div>
   );
+}
+
+function DeleteIconButton({ onClick, label = 'Supprimer' }) {
+  return <button aria-label={label} className="delete-icon-button" onClick={onClick} title={label} type="button">&#128465;</button>;
 }
 
 function FormActions({ submitLabel = 'Enregistrer', onCancel }) {
@@ -250,19 +267,31 @@ function Dashboard() {
   );
 }
 
-function RequestsPage({ role = 'admin' }) {
-  const { regions, materials, requests, stocks, mutate } = useData();
+function RequestsPage({ role = 'admin', history = false }) {
+  const { regions, materials, requests, stocks, users, mutate, decideRequest } = useData();
   const [refusingRequestId, setRefusingRequestId] = useState(null);
   const [selectedReasons, setSelectedReasons] = useState({});
   const [editing, setEditing] = useState(undefined);
   const [form, setForm] = useState({ regionId: '', materialId: '', quantity: 1, motif: '', statut: 'EN_ATTENTE' });
   const connectedRegion = regions[0];
+  const validator = users.find((user) => user.role === 'ADMIN') || users[0];
+  const centralRegion = regions.find((region) => region.nomRegion?.toLowerCase() === 'stock central');
   const visibleRequests = role === 'region'
     ? requests.filter((request) => request.region?.id === connectedRegion?.id)
-    : requests;
+    : requests.filter((request) => history ? request.statut !== 'EN_ATTENTE' : request.statut === 'EN_ATTENTE');
 
-  function updateRequest(request, changes) {
-    return mutate('requests', 'PUT', request.id, { ...request, ...changes });
+  async function acceptRequest(request) {
+    const result = await decideRequest(request.id, 'accepter', { utilisateurId: validator?.id });
+    if (result.success) window.alert('Demande acceptee et stocks transferes avec succes.');
+    else window.alert(result.message);
+  }
+
+  async function refuseRequest(request, reason) {
+    const result = await decideRequest(request.id, 'refuser', { utilisateurId: validator?.id, motif: reason });
+    if (result.success) {
+      setRefusingRequestId(null);
+      window.alert('Demande refusee et archivee.');
+    } else window.alert(result.message);
   }
 
   function openForm(request = null) {
@@ -306,19 +335,21 @@ function RequestsPage({ role = 'admin' }) {
   return (
     <>
       <PageHeader
-        title={role === 'region' ? 'Mes Demandes' : 'Demandes'}
+        title={role === 'region' ? 'Mes Demandes' : history ? 'Historique des demandes' : 'Demandes'}
         description={
           role === 'region'
             ? 'Suivi des demandes creees par la region Sfax.'
-            : 'Module central pour traiter les demandes de materiel des regions.'
+            : history
+              ? 'Demandes acceptees et refusees conservees pour une tracabilite complete.'
+              : 'Module central pour traiter les demandes de materiel des regions.'
         }
-        action={<button className="primary-button" onClick={() => openForm(null)} type="button">+ Ajouter Demande</button>}
+        action={role === 'region' ? <button className="primary-button" onClick={() => openForm(null)} type="button">+ Ajouter Demande</button> : null}
       />
       <div className="workflow-grid">
         {visibleRequests.map((request) => {
           const detail = request.details?.[0];
           const stock = stocks.find(
-            (item) => item.region?.id === request.region?.id && item.materiel?.id === detail?.materiel?.id,
+            (item) => item.region?.id === centralRegion?.id && item.materiel?.id === detail?.materiel?.id,
           );
           return (
           <article className="request-card" key={request.id}>
@@ -334,12 +365,16 @@ function RequestsPage({ role = 'admin' }) {
             <dl className="details-list">
               <div><dt>Stock actuel</dt><dd>{stock?.quantite ?? 0}</dd></div>
               <div><dt>Quantite demandee</dt><dd>{detail?.quantite ?? 0}</dd></div>
-              <div><dt>Date</dt><dd>{formatDate(request.dateDemande)}</dd></div>
+              {history && <div><dt>Quantite transferee</dt><dd>{request.statut === 'ACCEPTEE' ? detail?.quantite ?? 0 : 0}</dd></div>}
+              <div><dt>Date de creation</dt><dd>{formatDate(request.dateDemande)}</dd></div>
+              {history && <div><dt>Date de traitement</dt><dd>{formatDate(request.dateTraitement)}</dd></div>}
+              {history && <div><dt>Traitee par</dt><dd>{request.traitePar?.nom || 'Administrateur (session locale)'}</dd></div>}
               <div><dt>Motif</dt><dd>{request.motif || '-'}</dd></div>
+              {request.motifRefus && <div><dt>Motif du refus</dt><dd>{request.motifRefus}</dd></div>}
             </dl>
-            {role === 'admin' && (
+            {role === 'admin' && request.statut === 'EN_ATTENTE' && (
               <div className="action-row">
-                <button className="primary-button" onClick={() => updateRequest(request, { statut: 'ACCEPTEE', motifRefus: null })} type="button">Accepter</button>
+                <button className="primary-button" onClick={() => acceptRequest(request)} type="button">Accepter</button>
                 <button
                   className="danger-button"
                   onClick={() => setRefusingRequestId(refusingRequestId === request.id ? null : request.id)}
@@ -349,7 +384,7 @@ function RequestsPage({ role = 'admin' }) {
                 </button>
               </div>
             )}
-            {role === 'admin' && refusingRequestId === request.id && (
+            {role === 'admin' && request.statut === 'EN_ATTENTE' && refusingRequestId === request.id && (
               <div className="refusal-panel">
                 <strong>Choisir le motif de refus</strong>
                 <div className="refusal-options">
@@ -359,8 +394,7 @@ function RequestsPage({ role = 'admin' }) {
                       key={reason}
                       onClick={() => {
                         setSelectedReasons({ ...selectedReasons, [request.id]: reason });
-                        updateRequest(request, { statut: 'REFUSEE', motifRefus: reason });
-                        setRefusingRequestId(null);
+                        refuseRequest(request, reason);
                       }}
                       type="button"
                     >
@@ -370,10 +404,6 @@ function RequestsPage({ role = 'admin' }) {
                 </div>
               </div>
             )}
-            <div className="action-row">
-              <button className="ghost-button" onClick={() => openForm(request)} type="button">Modifier</button>
-              <button className="danger-button" onClick={() => window.confirm('Supprimer cette demande ?') && mutate('requests', 'DELETE', request.id)} type="button">Supprimer</button>
-            </div>
           </article>
           );
         })}
@@ -812,7 +842,7 @@ function MovementsPage({ role = 'admin' }) {
   const columns =
     role === 'region'
       ? ['Date', 'Materiel', 'Quantite', 'Type', 'Provenance / Destination', 'Commentaire']
-      : ['Date', 'Region', 'Materiel', 'Quantite', 'Type', 'Provenance / Destination', 'Commentaire', 'Action'];
+      : ['Date', 'Region', 'Materiel', 'Quantite', 'Type', 'Provenance / Destination', 'Utilisateur', 'Commentaire', 'Action'];
 
   function openForm(item = null) {
     setEditing(item);
@@ -867,7 +897,7 @@ function MovementsPage({ role = 'admin' }) {
       item.commentaire || '-',
     ];
 
-    return role === 'region' ? commonCells : [commonCells[0], region, ...commonCells.slice(1), <CrudButtons key={item.id} onEdit={() => openForm(item)} onDelete={() => window.confirm('Supprimer ce mouvement ?') && mutate('movements', 'DELETE', item.id)} />];
+    return role === 'region' ? commonCells : [commonCells[0], region, ...commonCells.slice(1, 5), item.utilisateur?.nom || 'Administrateur (session locale)', commonCells[5], <CrudButtons key={item.id} onEdit={() => openForm(item)} onDelete={() => window.confirm('Supprimer ce mouvement ?') && mutate('movements', 'DELETE', item.id)} />];
   });
 
   return (
@@ -931,7 +961,10 @@ function RegionsPage() {
             </div>
             <strong>{stocks.filter((stock) => stock.region?.id === region.id).reduce((sum, stock) => sum + stock.quantite, 0)}</strong>
             <p>Stock actuel · {region.adresse}</p>
-            <CrudButtons onEdit={() => openForm(region)} onDelete={() => window.confirm('Supprimer cette region ?') && mutate('regions', 'DELETE', region.id)} />
+            <div className="action-row">
+              <button className="ghost-button" onClick={() => openForm(region)} type="button">Modifier</button>
+              <DeleteIconButton label={`Supprimer la region ${region.nomRegion}`} onClick={() => window.confirm('Voulez-vous vraiment supprimer cette region ?') && mutate('regions', 'DELETE', region.id)} />
+            </div>
           </article>
         ))}
       </div>
@@ -990,7 +1023,10 @@ function UsersPage() {
         columns={['Nom', 'Email', 'Region', 'Role', 'Action']}
         rows={users.map((item) => [
           item.nom, item.email, item.region?.nomRegion || '-', formatEnum(item.role),
-          <CrudButtons key={item.id} onEdit={() => openForm(item)} onDelete={() => window.confirm('Supprimer cet utilisateur ?') && mutate('users', 'DELETE', item.id)} />,
+          <div className="action-row" key={item.id}>
+            <button className="ghost-button" onClick={() => openForm(item)} type="button">Modifier</button>
+            <DeleteIconButton label={`Supprimer l'utilisateur ${item.nom}`} onClick={() => window.confirm('Voulez-vous vraiment supprimer cet utilisateur ?') && mutate('users', 'DELETE', item.id)} />
+          </div>,
         ])}
       />
     </>
@@ -1073,6 +1109,8 @@ function renderPage(activePage, role) {
       return <StockPage role={role} />;
     case 'Demandes':
       return <RequestsPage role={role} />;
+    case 'Historique Demandes':
+      return <RequestsPage role={role} history />;
     case 'Mouvements':
       return <MovementsPage role={role} />;
     case 'Regions':

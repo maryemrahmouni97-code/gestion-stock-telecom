@@ -361,6 +361,21 @@ progress::-webkit-progress-value {
   color: #10233f;
 }
 
+.delete-icon-button {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fff;
+  color: #b91c1c;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.delete-icon-button:hover {
+  background: #fef2f2;
+}
+
 .danger-button {
   border-color: #fecaca;
   color: #991b1b;

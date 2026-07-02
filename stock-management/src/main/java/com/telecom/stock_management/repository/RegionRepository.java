@@ -6,4 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface RegionRepository extends JpaRepository<Region, Long> {
     Optional<Region> findByNomRegion(String nomRegion);
+    Optional<Region> findByNomRegionIgnoreCase(String nomRegion);
 }
